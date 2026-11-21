@@ -1,0 +1,6 @@
+{
+  "name": "Aci Rivi",
+  "description": "Aplikasi pemesanan Seblak Prasmanan Aci Rivi — pilih topping sendiri, tentukan waktu ambil, bayar QRIS, dan pantau status pesanan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
