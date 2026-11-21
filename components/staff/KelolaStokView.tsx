@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Minus, Plus, Trash2, X } from 'lucide-react';
+import { ImagePlus, Minus, Plus, Trash2, X } from 'lucide-react';
+import { compressToppingPhoto } from '@/lib/imageCompress';
 import {
   addTopping,
   deleteTopping,
@@ -12,25 +13,88 @@ import {
 import { formatRupiah } from '@/lib/time';
 import type { Topping } from '@/lib/types';
 
-const EMOJI_PILIHAN = ['🍡', '🌭', '🍗', '🍜', '🍝', '🍘', '🥟', '🥚', '🍄', '🥬', '🧀', '🍤'];
+const EMOJI_PILIHAN = [
+  '🍡',
+  '🌭',
+  '🍗',
+  '🍜',
+  '🍝',
+  '🍘',
+  '🥟',
+  '🥚',
+  '🍄',
+  '🥬',
+  '🧀',
+  '🍤',
+];
 
 export function KelolaStokView() {
   const [toppings, setToppings] = useState<Topping[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [photoErrors, setPhotoErrors] = useState<Record<string, string>>({});
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   // Form tambah topping
   const [namaBaru, setNamaBaru] = useState('');
   const [emojiBaru, setEmojiBaru] = useState('🍲');
+  const [fotoBaru, setFotoBaru] = useState<string | undefined>(undefined);
   const [hargaBaru, setHargaBaru] = useState('2000');
   const [stokBaru, setStokBaru] = useState('20');
   const [formError, setFormError] = useState('');
+  const [isCompressingNew, setIsCompressingNew] = useState(false);
 
   useEffect(() => {
     const sync = () => setToppings(getToppings());
     sync();
     return subscribeDataChanges(sync);
   }, []);
+
+  const handleUploadNewPhoto = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setFormError('');
+    setIsCompressingNew(true);
+    try {
+      const compressed = await compressToppingPhoto(file);
+      setFotoBaru(compressed);
+    } catch (err) {
+      setFormError(
+        err instanceof Error ? err.message : 'Gagal memproses foto topping.'
+      );
+    } finally {
+      setIsCompressingNew(false);
+    }
+  };
+
+  const handleUploadExistingPhoto = async (
+    toppingId: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setPhotoErrors((prev) => ({ ...prev, [toppingId]: '' }));
+    setUploadingId(toppingId);
+
+    try {
+      const compressed = await compressToppingPhoto(file);
+      updateTopping(toppingId, { foto: compressed });
+    } catch (err) {
+      setPhotoErrors((prev) => ({
+        ...prev,
+        [toppingId]:
+          err instanceof Error ? err.message : 'Gagal memproses foto topping.',
+      }));
+    } finally {
+      setUploadingId(null);
+    }
+  };
 
   const handleTambahTopping = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,19 +115,27 @@ export function KelolaStokView() {
       return;
     }
 
-    addTopping({
-      nama: namaClean,
-      emoji: emojiBaru || '🍲',
-      harga: hargaNum,
-      stok: stokNum,
-    });
+    try {
+      addTopping({
+        nama: namaClean,
+        emoji: emojiBaru || '🍲',
+        foto: fotoBaru,
+        harga: hargaNum,
+        stok: stokNum,
+      });
 
-    setNamaBaru('');
-    setEmojiBaru('🍲');
-    setHargaBaru('2000');
-    setStokBaru('20');
-    setFormError('');
-    setShowAddForm(false);
+      setNamaBaru('');
+      setEmojiBaru('🍲');
+      setFotoBaru(undefined);
+      setHargaBaru('2000');
+      setStokBaru('20');
+      setFormError('');
+      setShowAddForm(false);
+    } catch (err) {
+      setFormError(
+        err instanceof Error ? err.message : 'Gagal menyimpan topping.'
+      );
+    }
   };
 
   return (
@@ -74,7 +146,7 @@ export function KelolaStokView() {
             Daftar Topping ({toppings.length})
           </h2>
           <p className="text-sm text-stone-600">
-            Stok 0 otomatis tampil &ldquo;Habis&rdquo; di menu pelanggan.
+            Unggah foto asli topping, atur stok, dan perbarui harga jual.
           </p>
         </div>
 
@@ -134,7 +206,7 @@ export function KelolaStokView() {
                 htmlFor="tambah-emoji"
                 className="block text-sm font-semibold text-stone-800"
               >
-                Emoji
+                Emoji Cadangan
               </label>
               <div className="mt-1.5 flex items-center gap-2">
                 <input
@@ -197,10 +269,55 @@ export function KelolaStokView() {
                 className="mt-1.5 h-12 w-full rounded-xl border border-stone-300 bg-white px-3.5 font-mono text-base text-stone-900 tabular-nums focus:border-red-500 focus:outline-none"
               />
             </div>
+
+            {/* Unggah Foto untuk Topping Baru */}
+            <div className="sm:col-span-2">
+              <span className="block text-sm font-semibold text-stone-800">
+                Foto Topping{' '}
+                <span className="font-normal text-stone-500">(opsional)</span>
+              </span>
+              <div className="mt-1.5 flex items-center gap-4">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-stone-200 bg-stone-50">
+                  {fotoBaru ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={fotoBaru}
+                      alt="Pratinjau topping baru"
+                      referrerPolicy="no-referrer"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-3xl" aria-hidden="true">
+                      {emojiBaru || '🍲'}
+                    </span>
+                  )}
+                </div>
+
+                <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50">
+                  <ImagePlus className="h-4 w-4 text-red-600" aria-hidden="true" />
+                  <span>
+                    {isCompressingNew
+                      ? 'Memproses...'
+                      : fotoBaru
+                        ? 'Ganti Foto'
+                        : 'Unggah Foto'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleUploadNewPhoto}
+                    disabled={isCompressingNew}
+                    className="sr-only"
+                  />
+                </label>
+              </div>
+            </div>
           </div>
 
           {formError && (
-            <p className="mt-3 text-sm font-semibold text-red-600">{formError}</p>
+            <p className="mt-3 text-sm font-semibold text-red-600">
+              {formError}
+            </p>
           )}
 
           <div className="mt-5 flex items-center justify-end gap-3">
@@ -213,7 +330,8 @@ export function KelolaStokView() {
             </button>
             <button
               type="submit"
-              className="min-h-[44px] rounded-xl bg-red-600 px-6 py-2 text-sm font-bold text-white hover:bg-red-700"
+              disabled={isCompressingNew}
+              className="min-h-[44px] rounded-xl bg-red-600 px-6 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60"
             >
               Simpan Topping
             </button>
@@ -233,19 +351,40 @@ export function KelolaStokView() {
           {toppings.map((topping) => {
             const isOutOfStock = topping.stok <= 0 || !topping.tersedia;
             const isConfirmingDelete = confirmDeleteId === topping.id;
+            const isUploading = uploadingId === topping.id;
+            const photoErr = photoErrors[topping.id];
 
             return (
               <div
                 key={topping.id}
                 className={`rounded-3xl border bg-white p-4 sm:p-5 ${
-                  isOutOfStock ? 'border-stone-200 bg-stone-50/70' : 'border-stone-200'
+                  isOutOfStock
+                    ? 'border-stone-200 bg-stone-50/70'
+                    : 'border-stone-200'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl leading-none" aria-hidden="true">
-                      {topping.emoji}
-                    </span>
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-stone-200 bg-stone-50">
+                      {topping.foto ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={topping.foto}
+                          alt={topping.nama}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span
+                          className="text-3xl leading-none"
+                          aria-hidden="true"
+                        >
+                          {topping.emoji}
+                        </span>
+                      )}
+                    </div>
+
                     <div>
                       <h3 className="text-base font-bold text-stone-900">
                         {topping.nama}
@@ -255,6 +394,29 @@ export function KelolaStokView() {
                           ? 'Tampil Habis di pelanggan'
                           : `Aktif · ${formatRupiah(topping.harga)}`}
                       </p>
+
+                      <label className="mt-1.5 inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs font-semibold text-stone-700 hover:bg-stone-50">
+                        <ImagePlus
+                          className="h-3.5 w-3.5 text-red-600"
+                          aria-hidden="true"
+                        />
+                        <span>
+                          {isUploading
+                            ? 'Memproses...'
+                            : topping.foto
+                              ? 'Ganti Foto'
+                              : 'Unggah Foto'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handleUploadExistingPhoto(topping.id, e)
+                          }
+                          disabled={isUploading}
+                          className="sr-only"
+                        />
+                      </label>
                     </div>
                   </div>
 
@@ -285,6 +447,15 @@ export function KelolaStokView() {
                     </button>
                   </div>
                 </div>
+
+                {photoErr && (
+                  <p
+                    role="alert"
+                    className="mt-2 text-xs font-semibold text-red-600"
+                  >
+                    {photoErr}
+                  </p>
+                )}
 
                 <div className="mt-4 grid grid-cols-1 gap-3 border-t border-stone-100 pt-4 sm:grid-cols-2">
                   {/* Kontrol Stok */}

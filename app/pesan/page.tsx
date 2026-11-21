@@ -3,27 +3,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Clock, QrCode, Trash2, AlertCircle } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { AlertCircle, ArrowLeft, Trash2 } from 'lucide-react';
 import { ToppingGrid } from '@/components/ToppingGrid';
 import { JAM_BUKA, JAM_TUTUP } from '@/lib/constants';
-import { verifikasiPembayaran } from '@/lib/payment';
 import {
   createOnlineOrder,
-  getOrderById,
   getToppings,
-  markOrderExpired,
   subscribeDataChanges,
 } from '@/lib/storage';
 import { formatRupiah, generatePickupSlots } from '@/lib/time';
-import type { Order, Topping } from '@/lib/types';
+import type { Topping } from '@/lib/types';
 
-type Step = 'topping' | 'ringkasan' | 'qris';
+type Step = 'topping' | 'ringkasan';
 
 const STEP_TITLES: Record<Step, string> = {
   topping: 'Pilih Topping',
   ringkasan: 'Ringkasan & Waktu Ambil',
-  qris: 'Pembayaran QRIS',
 };
 
 export default function PesanPage() {
@@ -45,13 +40,6 @@ export default function PesanPage() {
     waktuAmbil?: string;
     topping?: string;
   }>({});
-
-  // Pembayaran QRIS
-  const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
-  const [remainingSeconds, setRemainingSeconds] = useState<number>(600);
-  const [qrisError, setQrisError] = useState('');
-  const [qrisOutOfStock, setQrisOutOfStock] = useState<string[]>([]);
-  const [isVerifying, setIsVerifying] = useState(false);
 
   // Sinkronisasi daftar topping secara langsung
   useEffect(() => {
@@ -80,37 +68,6 @@ export default function PesanPage() {
     const timer = window.setInterval(refreshSlots, 30_000);
     return () => window.clearInterval(timer);
   }, []);
-
-  // Hitung mundur 10 menit untuk halaman QRIS
-  useEffect(() => {
-    if (step !== 'qris' || !pendingOrder) return;
-
-    const tick = () => {
-      const latestOrder = getOrderById(pendingOrder.id);
-      if (latestOrder && latestOrder.statusBayar === 'Kedaluwarsa') {
-        setPendingOrder(latestOrder);
-        setRemainingSeconds(0);
-        return;
-      }
-
-      if (!pendingOrder.batasBayar) return;
-      const diffSec = Math.max(
-        0,
-        Math.floor((Date.parse(pendingOrder.batasBayar) - Date.now()) / 1000)
-      );
-      setRemainingSeconds(diffSec);
-
-      if (diffSec === 0 && pendingOrder.statusBayar === 'Menunggu') {
-        markOrderExpired(pendingOrder.id);
-        const expired = getOrderById(pendingOrder.id);
-        if (expired) setPendingOrder(expired);
-      }
-    };
-
-    tick();
-    const interval = window.setInterval(tick, 1000);
-    return () => window.clearInterval(interval);
-  }, [step, pendingOrder]);
 
   const selectedToppings = useMemo(
     () =>
@@ -170,7 +127,7 @@ export default function PesanPage() {
       return;
     }
 
-    // Buat pesanan berstatus Menunggu Pembayaran (belum masuk ke pegawai)
+    // Buat pesanan berstatus "Menunggu Pembayaran" (belum masuk ke pegawai)
     const created = createOnlineOrder({
       nama,
       nomorWhatsApp,
@@ -184,77 +141,11 @@ export default function PesanPage() {
       })),
     });
 
-    setFieldErrors({});
-    setQrisError('');
-    setQrisOutOfStock([]);
-    setPendingOrder(created);
-    setStep('qris');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    router.push(`/pesanan/${created.id}`);
   };
-
-  const handleSimulasiBayar = async () => {
-    if (!pendingOrder || isVerifying) return;
-    setIsVerifying(true);
-    setQrisError('');
-    setQrisOutOfStock([]);
-
-    const hasil = await verifikasiPembayaran(pendingOrder.id);
-    setIsVerifying(false);
-
-    if (hasil.sukses) {
-      router.push(`/pesanan/${hasil.order.id}?baru=1`);
-      return;
-    }
-
-    if (hasil.alasan === 'stok_habis') {
-      setQrisOutOfStock(hasil.toppingHabis ?? []);
-      setQrisError(hasil.pesan);
-      return;
-    }
-
-    setQrisError(hasil.pesan);
-    const updated = getOrderById(pendingOrder.id);
-    if (updated) setPendingOrder(updated);
-  };
-
-  const handleBatalkanQris = () => {
-    if (pendingOrder) {
-      markOrderExpired(pendingOrder.id);
-    }
-    router.push('/');
-  };
-
-  const handlePilihUlangTopping = () => {
-    const latest = getToppings();
-    setToppings(latest);
-    setSelectedIds((prev) =>
-      prev.filter((id) => {
-        const item = latest.find((t) => t.id === id);
-        return item && item.tersedia && item.stok > 0;
-      })
-    );
-    setPendingOrder(null);
-    setQrisError('');
-    setQrisOutOfStock([]);
-    setStep('topping');
-  };
-
-  const formatCountdown = (sec: number) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  };
-
-  const qrisPayload = pendingOrder
-    ? `QRIS|ACI_RIVI|${pendingOrder.nomorPesanan}|IDR:${pendingOrder.totalHarga}|ID:${pendingOrder.id}`
-    : '';
-
-  const isExpired =
-    pendingOrder?.statusBayar === 'Kedaluwarsa' || remainingSeconds === 0;
 
   return (
     <div className="min-h-screen bg-[#F7F6F5] pb-24">
-      {/* Header Kompak 1 Tujuan */}
       <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
           {step === 'topping' ? (
@@ -265,7 +156,7 @@ export default function PesanPage() {
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               <span>Beranda</span>
             </Link>
-          ) : step === 'ringkasan' ? (
+          ) : (
             <button
               type="button"
               onClick={() => setStep('topping')}
@@ -274,8 +165,6 @@ export default function PesanPage() {
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               <span>Topping</span>
             </button>
-          ) : (
-            <span className="text-sm font-bold text-red-600">Aci Rivi</span>
           )}
 
           <h1 className="truncate text-base font-bold text-stone-900">
@@ -283,7 +172,7 @@ export default function PesanPage() {
           </h1>
 
           <span className="font-mono text-xs font-semibold text-stone-500 tabular-nums">
-            {step === 'topping' ? '1/3' : step === 'ringkasan' ? '2/3' : '3/3'}
+            {step === 'topping' ? '1/3' : '2/3'}
           </span>
         </div>
       </header>
@@ -323,7 +212,6 @@ export default function PesanPage() {
         {/* LANGKAH 2: RINGKASAN & WAKTU PENGAMBILAN */}
         {step === 'ringkasan' && (
           <form onSubmit={handleLanjutBayar} className="mx-auto max-w-2xl space-y-5">
-            {/* Daftar Topping Terpilih */}
             <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6">
               <div className="flex items-center justify-between gap-2 border-b border-stone-100 pb-3">
                 <h2 className="text-base font-bold text-stone-900">
@@ -358,10 +246,21 @@ export default function PesanPage() {
                       key={item.id}
                       className="flex items-center justify-between gap-3 py-3"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-xl" aria-hidden="true">
-                          {item.emoji}
-                        </span>
+                      <div className="flex items-center gap-3">
+                        {item.foto ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.foto}
+                            alt={item.nama}
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                            className="h-10 w-10 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <span className="text-xl" aria-hidden="true">
+                            {item.emoji}
+                          </span>
+                        )}
                         <div>
                           <p className="text-sm font-semibold text-stone-900">
                             {item.nama}
@@ -406,7 +305,6 @@ export default function PesanPage() {
               </div>
             </section>
 
-            {/* Data Pemesan */}
             <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6">
               <h2 className="text-base font-bold text-stone-900">
                 Data Pengambilan
@@ -499,7 +397,6 @@ export default function PesanPage() {
               </div>
             </section>
 
-            {/* Pilihan Waktu Pengambilan */}
             <section
               className={`rounded-3xl border bg-white p-5 sm:p-6 ${
                 fieldErrors.waktuAmbil
@@ -561,7 +458,6 @@ export default function PesanPage() {
               )}
             </section>
 
-            {/* Tombol Lanjut Bayar & Batal */}
             <div className="flex flex-col-reverse gap-3 sm:flex-row">
               <Link
                 href="/"
@@ -579,126 +475,8 @@ export default function PesanPage() {
             </div>
           </form>
         )}
-
-        {/* LANGKAH 3: PEMBAYARAN QRIS */}
-        {step === 'qris' && pendingOrder && (
-          <div className="mx-auto max-w-md space-y-5">
-            <div className="rounded-3xl border border-stone-200 bg-white p-6 text-center shadow-xs">
-              <div className="flex items-center justify-between border-b border-stone-100 pb-4">
-                <div className="text-left">
-                  <p className="text-xs text-stone-500">Nomor Pesanan</p>
-                  <p className="font-mono text-2xl font-bold text-red-600 tabular-nums">
-                    {pendingOrder.nomorPesanan}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-xs text-stone-500">Batas Waktu</p>
-                  <p
-                    className={`inline-flex items-center gap-1 font-mono text-lg font-bold tabular-nums ${
-                      remainingSeconds <= 60 ? 'text-red-600' : 'text-stone-900'
-                    }`}
-                  >
-                    <Clock className="h-4 w-4" aria-hidden="true" />
-                    <span>{formatCountdown(remainingSeconds)}</span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-5">
-                <p className="text-xs font-medium text-stone-500">Total Bayar</p>
-                <p className="mt-0.5 font-mono text-3xl font-bold text-stone-900 tabular-nums">
-                  {formatRupiah(pendingOrder.totalHarga)}
-                </p>
-              </div>
-
-              {isExpired ? (
-                <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-800">
-                  <p className="text-base font-bold">
-                    Waktu Pembayaran Habis
-                  </p>
-                  <p className="mt-1 text-sm">
-                    Pesanan berstatus Kedaluwarsa/Dibatalkan dan tidak diteruskan
-                    ke dapur.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handlePilihUlangTopping}
-                    className="mt-4 flex h-12 w-full items-center justify-center rounded-xl bg-red-600 px-5 text-sm font-bold text-white hover:bg-red-700"
-                  >
-                    Buat Pesanan Baru
-                  </button>
-                </div>
-              ) : (
-                <>
-                  {/* Kode QR QRIS */}
-                  <div className="mx-auto mt-6 inline-flex flex-col items-center rounded-2xl border border-stone-200 bg-white p-5">
-                    <div className="mb-3 flex items-center gap-1.5 text-sm font-bold text-stone-900">
-                      <QrCode className="h-4 w-4 text-red-600" aria-hidden="true" />
-                      <span>QRIS — Aci Rivi</span>
-                    </div>
-                    <QRCodeSVG
-                      value={qrisPayload}
-                      size={210}
-                      level="M"
-                      includeMargin={false}
-                    />
-                    <p className="mt-3 text-xs text-stone-500">
-                      Ambil pukul {pendingOrder.waktuAmbil} WIB ·{' '}
-                      {pendingOrder.nama}
-                    </p>
-                  </div>
-
-                  {qrisError && (
-                    <div
-                      role="alert"
-                      className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-left text-sm text-red-800"
-                    >
-                      <p className="font-bold">Pembayaran Tidak Dapat Diproses</p>
-                      <p className="mt-1">{qrisError}</p>
-                      {qrisOutOfStock.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={handlePilihUlangTopping}
-                          className="mt-3 flex h-11 w-full items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-bold text-white hover:bg-red-700"
-                        >
-                          Pilih Ulang Topping
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Simulasi Pembayaran Berhasil (terhubung ke verifikasiPembayaran) */}
-                  {qrisOutOfStock.length === 0 && (
-                    <div className="mt-6 space-y-3">
-                      <button
-                        type="button"
-                        disabled={isVerifying}
-                        onClick={handleSimulasiBayar}
-                        className="flex h-14 w-full items-center justify-center rounded-2xl bg-red-600 px-6 text-base font-bold text-white shadow-xs transition-colors hover:bg-red-700 disabled:opacity-60 active:scale-[0.99]"
-                      >
-                        {isVerifying
-                          ? 'Memeriksa Pembayaran...'
-                          : 'Simulasi: Pembayaran Berhasil'}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleBatalkanQris}
-                        className="flex h-12 w-full items-center justify-center rounded-2xl border border-stone-300 bg-white px-6 text-sm font-bold text-stone-700 hover:bg-stone-50"
-                      >
-                        Batalkan
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        )}
       </main>
 
-      {/* Bilah Bawah Tetap di Langkah Pilih Topping (<= 15% tinggi layar) */}
       {step === 'topping' && (
         <div className="fixed right-0 bottom-0 left-0 z-40 border-t border-stone-200 bg-white/95 backdrop-blur-md">
           <div className="mx-auto flex h-[72px] max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">

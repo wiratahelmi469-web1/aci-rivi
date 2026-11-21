@@ -1,9 +1,16 @@
 import { BATAS_BAYAR_MENIT, INITIAL_TOPPINGS } from './constants';
 import { getWibParts } from './time';
-import type { Order, OrderTopping, StatusPesanan, Topping } from './types';
+import type {
+  Order,
+  OrderTopping,
+  StatusPesanan,
+  StoreSettings,
+  Topping,
+} from './types';
 
 const TOPPINGS_KEY = 'aci_rivi_toppings_v1';
 const ORDERS_KEY = 'aci_rivi_orders_v1';
+const SETTINGS_KEY = 'aci_rivi_settings_v1';
 const SYNC_EVENT = 'aci-rivi-data-changed';
 const CHANNEL_NAME = 'aci-rivi-sync';
 
@@ -34,7 +41,11 @@ export function subscribeDataChanges(callback: () => void): () => void {
 
   const handleLocal = () => callback();
   const handleStorage = (e: StorageEvent) => {
-    if (e.key === TOPPINGS_KEY || e.key === ORDERS_KEY) {
+    if (
+      e.key === TOPPINGS_KEY ||
+      e.key === ORDERS_KEY ||
+      e.key === SETTINGS_KEY
+    ) {
       callback();
     }
   };
@@ -65,8 +76,27 @@ function readJson<T>(key: string, fallback: T): T {
 
 function writeJson<T>(key: string, value: T): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(key, JSON.stringify(value));
-  notifyDataChanged();
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+    notifyDataChanged();
+  } catch {
+    throw new Error(
+      'Penyimpanan penuh. Gunakan gambar dengan ukuran lebih kecil.'
+    );
+  }
+}
+
+export function getStoreSettings(): StoreSettings {
+  return readJson<StoreSettings>(SETTINGS_KEY, {});
+}
+
+export function saveQrisImage(qrisImage: string): void {
+  const current = getStoreSettings();
+  writeJson<StoreSettings>(SETTINGS_KEY, {
+    ...current,
+    qrisImage,
+    qrisUpdatedAt: new Date().toISOString(),
+  });
 }
 
 export function seedInitialToppingsIfNeeded(): Topping[] {
@@ -90,6 +120,7 @@ export function saveToppings(toppings: Topping[]): void {
 export function addTopping(input: {
   nama: string;
   emoji: string;
+  foto?: string;
   harga: number;
   stok: number;
 }): Topping {
@@ -106,6 +137,7 @@ export function addTopping(input: {
     id: cleanId || `topping-${Date.now()}`,
     nama: input.nama.trim(),
     emoji: input.emoji.trim() || '🍲',
+    foto: input.foto || undefined,
     harga: Math.max(0, Math.round(input.harga)),
     stok: Math.max(0, Math.round(input.stok)),
     tersedia: true,
@@ -148,8 +180,9 @@ export function getAllOrders(): Order[] {
   let changed = false;
 
   const synced = orders.map((order) => {
+    // Hanya pesanan yang masih Menunggu Pembayaran (belum unggah bukti) yang kedaluwarsa otomatis
     if (
-      order.statusBayar === 'Menunggu' &&
+      order.statusBayar === 'Menunggu Pembayaran' &&
       order.batasBayar &&
       nowMs > Date.parse(order.batasBayar)
     ) {
@@ -171,8 +204,8 @@ export function saveOrders(orders: Order[]): void {
 }
 
 /**
- * Sisi pegawai hanya membaca order yang sudah Lunas atau sumber Prasmanan.
- * Pesanan Menunggu Pembayaran dan Kedaluwarsa TIDAK pernah tampil di sisi pegawai.
+ * Sisi pegawai (Pesanan Masuk, Riwayat, Laporan) hanya membaca order
+ * yang sudah Lunas atau sumber Prasmanan.
  */
 export function getStaffOrders(): Order[] {
   return getAllOrders().filter(
@@ -180,7 +213,19 @@ export function getStaffOrders(): Order[] {
   );
 }
 
-function generateDailyOrderNumber(orders: Order[], now: Date = new Date()): string {
+/**
+ * Daftar pesanan menunggu konfirmasi pembayaran pegawai (/pegawai/pembayaran).
+ */
+export function getPendingPaymentOrders(): Order[] {
+  return getAllOrders()
+    .filter((order) => order.statusBayar === 'Menunggu Konfirmasi')
+    .sort((a, b) => Date.parse(a.waktuDibuat) - Date.parse(b.waktuDibuat));
+}
+
+function generateDailyOrderNumber(
+  orders: Order[],
+  now: Date = new Date()
+): string {
   const todayWib = getWibParts(now).dateKey;
   const todaysCount = orders.filter(
     (o) => getWibParts(o.waktuDibuat).dateKey === todayWib
@@ -203,7 +248,6 @@ export function findOrderByQuery(query: string): Order | undefined {
   const normalized = normalizeOrderNumberInput(query);
   if (!normalized) return undefined;
 
-  // Cari yang terbaru jika ada nomor sama dari hari sebelumnya
   const sortedDesc = [...orders].sort(
     (a, b) => Date.parse(b.waktuDibuat) - Date.parse(a.waktuDibuat)
   );
@@ -240,7 +284,7 @@ export function createOnlineOrder(input: {
     totalHarga,
     catatan: input.catatan.trim(),
     waktuAmbil: input.waktuAmbil,
-    statusBayar: 'Menunggu',
+    statusBayar: 'Menunggu Pembayaran',
     statusPesanan: 'Baru',
     waktuDibuat: now.toISOString(),
     batasBayar,
@@ -253,7 +297,9 @@ export function createOnlineOrder(input: {
 export function markOrderExpired(orderId: string): void {
   const orders = getAllOrders();
   const updated = orders.map((order) =>
-    order.id === orderId && order.statusBayar === 'Menunggu'
+    order.id === orderId &&
+    (order.statusBayar === 'Menunggu Pembayaran' ||
+      order.statusBayar === 'Ditolak')
       ? { ...order, statusBayar: 'Kedaluwarsa' as const }
       : order
   );
@@ -282,7 +328,6 @@ export function createPrasmananOrder(input: {
     };
   }
 
-  // Kurangi stok setiap topping
   const selectedIds = new Set(input.daftarTopping.map((t) => t.id));
   const updatedToppings = toppings.map((t) =>
     selectedIds.has(t.id) ? { ...t, stok: Math.max(0, t.stok - 1) } : t
