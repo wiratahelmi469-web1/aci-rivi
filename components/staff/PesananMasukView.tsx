@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Clock, Utensils } from 'lucide-react';
 import { OrderDetailModal } from '@/components/OrderDetailModal';
+import { ErrorRetryCard, OrderListSkeleton } from '@/components/Skeletons';
 import { playNewOrderChime } from '@/lib/sound';
 import {
   advanceOrderStatus,
@@ -30,14 +31,17 @@ const NEXT_STATUS_ACTION: Record<
 
 export function PesananMasukView() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [activeTab, setActiveTab] = useState<StatusPesanan>('Baru');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const knownBaruIdsRef = useRef<Set<string> | null>(null);
 
-  useEffect(() => {
-    const sync = () => {
+  const sync = useCallback(() => {
+    try {
       const staffOrders = getStaffOrders();
       setOrders(staffOrders);
+      setLoadError(false);
 
       const currentBaruIds = new Set(
         staffOrders
@@ -58,17 +62,24 @@ export function PesananMasukView() {
         }
       }
       knownBaruIdsRef.current = currentBaruIds;
-    };
+    } catch {
+      setLoadError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-    sync();
+  useEffect(() => {
+    const initTimer = window.setTimeout(sync, 0);
     const unsubscribe = subscribeDataChanges(sync);
     const interval = window.setInterval(sync, 3000);
 
     return () => {
+      window.clearTimeout(initTimer);
       unsubscribe();
       window.clearInterval(interval);
     };
-  }, []);
+  }, [sync]);
 
   const counts = useMemo(() => {
     const map: Record<StatusPesanan, number> = {
@@ -127,7 +138,11 @@ export function PesananMasukView() {
       </div>
 
       {/* Daftar Kartu Pesanan */}
-      {filteredOrders.length === 0 ? (
+      {isLoading ? (
+        <OrderListSkeleton count={4} />
+      ) : loadError ? (
+        <ErrorRetryCard message="Gagal memuat" onRetry={sync} />
+      ) : filteredOrders.length === 0 ? (
         <div className="rounded-3xl border border-stone-200 bg-white p-10 text-center">
           <Utensils
             className="mx-auto h-10 w-10 text-stone-300"

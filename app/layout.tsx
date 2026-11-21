@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
+import { AuthProvider } from '@/components/AuthProvider';
 import './globals.css';
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -49,7 +50,7 @@ export default function RootLayout({
         suppressHydrationWarning
         className="min-h-screen bg-[#F7F6F5] font-sans text-stone-900 antialiased selection:bg-orange-100 selection:text-orange-900"
       >
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

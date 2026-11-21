@@ -256,11 +256,19 @@ export function findOrderByQuery(query: string): Order | undefined {
   );
 }
 
+export function getCustomerOrders(uid: string): Order[] {
+  if (!uid) return [];
+  return getAllOrders()
+    .filter((order) => order.uid === uid)
+    .sort((a, b) => Date.parse(b.waktuDibuat) - Date.parse(a.waktuDibuat));
+}
+
 export function getOrderById(id: string): Order | undefined {
   return getAllOrders().find((o) => o.id === id);
 }
 
 export function createOnlineOrder(input: {
+  uid: string;
   nama: string;
   nomorWhatsApp: string;
   daftarTopping: OrderTopping[];
@@ -276,6 +284,7 @@ export function createOnlineOrder(input: {
 
   const newOrder: Order = {
     id: `ord-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    uid: input.uid,
     nomorPesanan: generateDailyOrderNumber(orders, now),
     nama: input.nama.trim(),
     nomorWhatsApp: input.nomorWhatsApp.trim(),

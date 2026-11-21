@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowLeft, Trash2 } from 'lucide-react';
+import { useCustomerAuth } from '@/components/AuthProvider';
+import { CustomerHeader } from '@/components/CustomerHeader';
+import { ErrorRetryCard, ToppingGridSkeleton } from '@/components/Skeletons';
 import { ToppingGrid } from '@/components/ToppingGrid';
 import { JAM_BUKA, JAM_TUTUP } from '@/lib/constants';
 import {
@@ -13,6 +16,7 @@ import {
 } from '@/lib/storage';
 import { formatRupiah, generatePickupSlots } from '@/lib/time';
 import type { Topping } from '@/lib/types';
+import { getWhatsAppValidationError } from '@/lib/validation';
 
 type Step = 'topping' | 'ringkasan';
 
@@ -23,14 +27,20 @@ const STEP_TITLES: Record<Step, string> = {
 
 export default function PesanPage() {
   const router = useRouter();
+  const { user, profile, authReady } = useCustomerAuth();
+
   const [step, setStep] = useState<Step>('topping');
   const [toppings, setToppings] = useState<Topping[]>([]);
+  const [toppingsLoading, setToppingsLoading] = useState(true);
+  const [toppingsError, setToppingsError] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [toppingError, setToppingError] = useState('');
 
   // Form Ringkasan & Waktu Pengambilan
-  const [nama, setNama] = useState('');
-  const [nomorWhatsApp, setNomorWhatsApp] = useState('');
+  const [namaDraft, setNamaDraft] = useState<string | null>(null);
+  const [waDraft, setWaDraft] = useState<string | null>(null);
+  const nama = namaDraft ?? (profile?.nama || user?.displayName || '');
+  const nomorWhatsApp = waDraft ?? (profile?.nomorWhatsApp || '');
   const [catatan, setCatatan] = useState('');
   const [waktuAmbil, setWaktuAmbil] = useState('');
   const [pickupSlots, setPickupSlots] = useState<string[]>([]);
@@ -41,9 +51,15 @@ export default function PesanPage() {
     topping?: string;
   }>({});
 
-  // Sinkronisasi daftar topping secara langsung
+  // Wajib login untuk mengakses halaman pemesanan
   useEffect(() => {
-    const syncToppings = () => {
+    if (authReady && !user) {
+      router.replace('/masuk?next=/pesan');
+    }
+  }, [authReady, user, router]);
+
+  const syncToppings = useCallback(() => {
+    try {
       const latest = getToppings();
       setToppings(latest);
       setSelectedIds((prev) =>
@@ -52,12 +68,24 @@ export default function PesanPage() {
           return item && item.tersedia && item.stok > 0;
         })
       );
-    };
-    syncToppings();
-    return subscribeDataChanges(syncToppings);
+      setToppingsError(false);
+    } catch {
+      setToppingsError(true);
+    } finally {
+      setToppingsLoading(false);
+    }
   }, []);
 
-  // Perbarui pilihan jam pengambilan setiap 30 detik agar slot lewat hilang otomatis
+  useEffect(() => {
+    if (!authReady || !user) return;
+    const initTimer = window.setTimeout(syncToppings, 0);
+    const unsub = subscribeDataChanges(syncToppings);
+    return () => {
+      window.clearTimeout(initTimer);
+      unsub();
+    };
+  }, [authReady, user, syncToppings]);
+
   useEffect(() => {
     const refreshSlots = () => {
       const slots = generatePickupSlots();
@@ -104,19 +132,18 @@ export default function PesanPage() {
 
   const handleLanjutBayar = (e: React.FormEvent) => {
     e.preventDefault();
-    const errors: typeof fieldErrors = {};
+    if (!user) return;
 
+    const errors: typeof fieldErrors = {};
     if (selectedToppings.length === 0) {
       errors.topping = 'Pilih minimal 1 topping';
     }
     if (!nama.trim()) {
       errors.nama = 'Nama wajib diisi';
     }
-    const cleanPhone = nomorWhatsApp.replace(/\D/g, '');
-    if (!nomorWhatsApp.trim()) {
-      errors.nomorWhatsApp = 'Nomor WhatsApp wajib diisi';
-    } else if (cleanPhone.length < 9 || cleanPhone.length > 15) {
-      errors.nomorWhatsApp = 'Masukkan nomor WhatsApp yang valid (minimal 9 digit)';
+    const waError = getWhatsAppValidationError(nomorWhatsApp);
+    if (waError) {
+      errors.nomorWhatsApp = waError;
     }
     if (!waktuAmbil) {
       errors.waktuAmbil = 'Pilih waktu pengambilan';
@@ -127,8 +154,8 @@ export default function PesanPage() {
       return;
     }
 
-    // Buat pesanan berstatus "Menunggu Pembayaran" (belum masuk ke pegawai)
     const created = createOnlineOrder({
+      uid: user.uid,
       nama,
       nomorWhatsApp,
       catatan,
@@ -144,14 +171,27 @@ export default function PesanPage() {
     router.push(`/pesanan/${created.id}`);
   };
 
+  if (!authReady || !user) {
+    return (
+      <div className="min-h-screen bg-[#F7F6F5]">
+        <CustomerHeader />
+        <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+          <ToppingGridSkeleton count={8} />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F7F6F5] pb-24">
-      <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
+      <CustomerHeader />
+
+      <div className="border-b border-stone-200 bg-white">
+        <div className="mx-auto flex h-12 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
           {step === 'topping' ? (
             <Link
               href="/"
-              className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-semibold text-stone-700 hover:text-red-600"
+              className="inline-flex min-h-[40px] items-center gap-1.5 text-sm font-semibold text-stone-700 hover:text-red-600"
             >
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               <span>Beranda</span>
@@ -160,14 +200,14 @@ export default function PesanPage() {
             <button
               type="button"
               onClick={() => setStep('topping')}
-              className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-semibold text-stone-700 hover:text-red-600"
+              className="inline-flex min-h-[40px] items-center gap-1.5 text-sm font-semibold text-stone-700 hover:text-red-600"
             >
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               <span>Topping</span>
             </button>
           )}
 
-          <h1 className="truncate text-base font-bold text-stone-900">
+          <h1 className="truncate text-sm font-bold text-stone-900">
             {STEP_TITLES[step]}
           </h1>
 
@@ -175,10 +215,9 @@ export default function PesanPage() {
             {step === 'topping' ? '1/3' : '2/3'}
           </span>
         </div>
-      </header>
+      </div>
 
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
-        {/* LANGKAH 1: PILIH TOPPING */}
         {step === 'topping' && (
           <div className="space-y-5">
             <div>
@@ -200,16 +239,23 @@ export default function PesanPage() {
               </div>
             )}
 
-            <ToppingGrid
-              toppings={toppings}
-              selectedIds={selectedIds}
-              onToggle={handleToggleTopping}
-              onUnavailableTap={() => setToppingError('Topping ini sudah habis')}
-            />
+            {toppingsLoading ? (
+              <ToppingGridSkeleton count={8} />
+            ) : toppingsError ? (
+              <ErrorRetryCard message="Gagal memuat" onRetry={syncToppings} />
+            ) : (
+              <ToppingGrid
+                toppings={toppings}
+                selectedIds={selectedIds}
+                onToggle={handleToggleTopping}
+                onUnavailableTap={() =>
+                  setToppingError('Topping ini sudah habis')
+                }
+              />
+            )}
           </div>
         )}
 
-        {/* LANGKAH 2: RINGKASAN & WAKTU PENGAMBILAN */}
         {step === 'ringkasan' && (
           <form onSubmit={handleLanjutBayar} className="mx-auto max-w-2xl space-y-5">
             <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6">
@@ -323,7 +369,7 @@ export default function PesanPage() {
                     type="text"
                     value={nama}
                     onChange={(e) => {
-                      setNama(e.target.value);
+                      setNamaDraft(e.target.value);
                       if (fieldErrors.nama) {
                         setFieldErrors((prev) => ({ ...prev, nama: undefined }));
                       }
@@ -352,10 +398,10 @@ export default function PesanPage() {
                   <input
                     id="order-wa"
                     type="tel"
-                    inputMode="tel"
+                    inputMode="numeric"
                     value={nomorWhatsApp}
                     onChange={(e) => {
-                      setNomorWhatsApp(e.target.value);
+                      setWaDraft(e.target.value);
                       if (fieldErrors.nomorWhatsApp) {
                         setFieldErrors((prev) => ({
                           ...prev,
@@ -363,7 +409,7 @@ export default function PesanPage() {
                         }));
                       }
                     }}
-                    placeholder="Contoh: 081234567890"
+                    placeholder="081234567890"
                     className={`mt-1.5 h-12 w-full rounded-xl border bg-white px-4 font-mono text-base text-stone-900 placeholder:font-sans focus:outline-none ${
                       fieldErrors.nomorWhatsApp
                         ? 'border-red-500 ring-1 ring-red-500'

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ImagePlus, Minus, Plus, Trash2, X } from 'lucide-react';
+import { ErrorRetryCard, ToppingGridSkeleton } from '@/components/Skeletons';
 import { compressToppingPhoto } from '@/lib/imageCompress';
 import {
   addTopping,
@@ -30,6 +31,8 @@ const EMOJI_PILIHAN = [
 
 export function KelolaStokView() {
   const [toppings, setToppings] = useState<Topping[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [photoErrors, setPhotoErrors] = useState<Record<string, string>>({});
@@ -44,11 +47,25 @@ export function KelolaStokView() {
   const [formError, setFormError] = useState('');
   const [isCompressingNew, setIsCompressingNew] = useState(false);
 
-  useEffect(() => {
-    const sync = () => setToppings(getToppings());
-    sync();
-    return subscribeDataChanges(sync);
+  const sync = useCallback(() => {
+    try {
+      setToppings(getToppings());
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    const initTimer = window.setTimeout(sync, 0);
+    const unsub = subscribeDataChanges(sync);
+    return () => {
+      window.clearTimeout(initTimer);
+      unsub();
+    };
+  }, [sync]);
 
   const handleUploadNewPhoto = async (
     e: React.ChangeEvent<HTMLInputElement>
@@ -340,7 +357,11 @@ export function KelolaStokView() {
       )}
 
       {/* Daftar Topping */}
-      {toppings.length === 0 ? (
+      {isLoading ? (
+        <ToppingGridSkeleton count={6} />
+      ) : loadError ? (
+        <ErrorRetryCard message="Gagal memuat" onRetry={sync} />
+      ) : toppings.length === 0 ? (
         <div className="rounded-3xl border border-stone-200 bg-white p-10 text-center">
           <p className="text-base font-semibold text-stone-700">
             Belum ada topping.

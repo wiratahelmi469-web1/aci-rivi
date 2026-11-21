@@ -1,54 +1,86 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Search, ShoppingBag } from 'lucide-react';
-import { findOrderByQuery, seedInitialToppingsIfNeeded } from '@/lib/storage';
+import { ArrowRight, ChevronRight, ReceiptText, ShoppingBag } from 'lucide-react';
+import { useCustomerAuth } from '@/components/AuthProvider';
+import { CustomerHeader } from '@/components/CustomerHeader';
+import { ErrorRetryCard, OrderListSkeleton } from '@/components/Skeletons';
+import {
+  getCustomerOrders,
+  seedInitialToppingsIfNeeded,
+  subscribeDataChanges,
+} from '@/lib/storage';
+import { formatRupiah, formatTanggalJamWib } from '@/lib/time';
+import type { Order } from '@/lib/types';
+
+function getOrderStatusText(order: Order): string {
+  if (order.statusBayar === 'Lunas') {
+    return order.statusPesanan;
+  }
+  return order.statusBayar;
+}
+
+function getOrderStatusColor(order: Order): string {
+  if (order.statusBayar === 'Lunas') {
+    return order.statusPesanan === 'Selesai'
+      ? 'text-emerald-700'
+      : 'text-orange-700';
+  }
+  if (order.statusBayar === 'Ditolak' || order.statusBayar === 'Kedaluwarsa') {
+    return 'text-red-600';
+  }
+  return 'text-amber-700';
+}
 
 export default function HomePage() {
   const router = useRouter();
-  const [orderQuery, setOrderQuery] = useState('');
-  const [searchError, setSearchError] = useState('');
+  const { user, authReady } = useCustomerAuth();
+  const [myOrders, setMyOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState(false);
+
+  const loadOrders = useCallback(() => {
+    try {
+      seedInitialToppingsIfNeeded();
+      if (user) {
+        setMyOrders(getCustomerOrders(user.uid));
+      } else {
+        setMyOrders([]);
+      }
+      setOrdersError(false);
+    } catch {
+      setOrdersError(true);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    seedInitialToppingsIfNeeded();
-  }, []);
+    if (!authReady) return;
+    const initTimer = window.setTimeout(loadOrders, 0);
+    const unsub = subscribeDataChanges(loadOrders);
+    const interval = window.setInterval(loadOrders, 2500);
+    return () => {
+      window.clearTimeout(initTimer);
+      unsub();
+      window.clearInterval(interval);
+    };
+  }, [authReady, loadOrders]);
 
-  const handleCekPesanan = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = orderQuery.trim();
-    if (!trimmed) {
-      setSearchError('Masukkan nomor pesanan terlebih dahulu.');
+  const handlePesanSekarang = () => {
+    if (!authReady) return;
+    if (!user) {
+      router.push('/masuk?next=/pesan');
       return;
     }
-
-    const found = findOrderByQuery(trimmed);
-    if (!found) {
-      setSearchError('Nomor pesanan tidak ditemukan.');
-      return;
-    }
-
-    setSearchError('');
-    router.push(`/pesanan/${found.id}`);
+    router.push('/pesan');
   };
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Header khusus pelanggan */}
-      <header className="border-b border-stone-200 bg-white">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
-          <Link
-            href="/"
-            className="text-xl font-bold tracking-tight text-red-600 whitespace-nowrap"
-          >
-            Aci Rivi
-          </Link>
-          <span className="text-xs font-medium text-stone-500">
-            Seblak Prasmanan · Ambil di Tempat
-          </span>
-        </div>
-      </header>
+      <CustomerHeader />
 
       {/* Konten Utama Pelanggan */}
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 py-8 sm:px-6 sm:py-12">
@@ -62,13 +94,14 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Kartu Utama: Pesan Sekarang */}
-        <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-12">
-          <Link
-            href="/pesan"
-            className="group flex min-h-[190px] flex-col justify-between rounded-3xl bg-gradient-to-br from-red-600 to-orange-600 p-6 text-white shadow-sm transition-transform duration-150 hover:scale-[1.01] active:scale-[0.99] lg:col-span-7 sm:p-8"
+        {/* Tombol/Kartu Utama: Pesan Sekarang */}
+        <div className="mt-8">
+          <button
+            type="button"
+            onClick={handlePesanSekarang}
+            className="group flex min-h-[180px] w-full flex-col justify-between rounded-3xl bg-gradient-to-br from-red-600 to-orange-600 p-6 text-left text-white shadow-sm transition-transform duration-150 hover:scale-[1.01] active:scale-[0.99] sm:p-8"
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex w-full items-start justify-between gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
                 <ShoppingBag className="h-6 w-6" aria-hidden="true" />
               </div>
@@ -81,66 +114,99 @@ export default function HomePage() {
             <div className="mt-8">
               <h2 className="text-2xl font-bold sm:text-3xl">Pesan Sekarang</h2>
               <p className="mt-1.5 text-sm text-orange-50 sm:text-base">
-                Pilih topping sendiri, tentukan jam ambil, dan bayar lewat QRIS.
+                {user
+                  ? 'Pilih topping sendiri, tentukan jam ambil, dan bayar lewat QRIS.'
+                  : 'Masuk terlebih dahulu untuk mulai meracik seblakmu.'}
               </p>
             </div>
-          </Link>
+          </button>
+        </div>
 
-          {/* Kolom Cek Pesanan */}
+        {/* Bagian Pesanan Saya (hanya tampil setelah pelanggan login) */}
+        {authReady && user && (
           <section
-            aria-labelledby="cek-pesanan-heading"
-            className="flex flex-col justify-between rounded-3xl border border-stone-200 bg-white p-6 lg:col-span-5 sm:p-7"
+            id="pesanan-saya"
+            aria-labelledby="pesanan-saya-heading"
+            className="mt-8 space-y-4"
           >
-            <div>
+            <div className="flex items-center justify-between gap-2">
               <h2
-                id="cek-pesanan-heading"
+                id="pesanan-saya-heading"
                 className="text-xl font-bold text-stone-900"
               >
-                Cek Pesanan
+                Pesanan Saya
               </h2>
-              <p className="mt-1 text-sm text-stone-600">
-                Masukkan nomor pesanan untuk melihat status pembayaran atau proses
-                pembuatan seblakmu.
-              </p>
+              <span className="text-xs font-medium text-stone-500">
+                Terbaru di atas
+              </span>
             </div>
 
-            <form onSubmit={handleCekPesanan} className="mt-6 space-y-3">
-              <div className="relative">
-                <Search
-                  className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-stone-400"
+            {ordersLoading ? (
+              <OrderListSkeleton count={2} />
+            ) : ordersError ? (
+              <ErrorRetryCard message="Gagal memuat" onRetry={loadOrders} />
+            ) : myOrders.length === 0 ? (
+              <div className="rounded-3xl border border-stone-200 bg-white p-8 text-center">
+                <ReceiptText
+                  className="mx-auto h-9 w-9 text-stone-300"
                   aria-hidden="true"
                 />
-                <input
-                  type="text"
-                  value={orderQuery}
-                  onChange={(e) => {
-                    setOrderQuery(e.target.value);
-                    if (searchError) setSearchError('');
-                  }}
-                  placeholder="Contoh: 001 atau #001"
-                  aria-label="Nomor pesanan"
-                  className="h-12 w-full rounded-xl border border-stone-300 bg-white pr-4 pl-10 font-mono text-base text-stone-900 placeholder:font-sans placeholder:text-stone-400 focus:border-red-500 focus:outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="flex h-12 w-full items-center justify-center rounded-xl bg-stone-900 px-6 text-sm font-bold text-white transition-colors hover:bg-stone-800 active:scale-[0.98]"
-              >
-                Cek Status Pesanan
-              </button>
-
-              {searchError && (
-                <p
-                  role="alert"
-                  className="text-sm font-semibold text-red-600"
-                >
-                  {searchError}
+                <p className="mt-3 text-base font-semibold text-stone-700">
+                  Belum ada pesanan
                 </p>
-              )}
-            </form>
+                <p className="mt-1 text-sm text-stone-500">
+                  Pesanan yang kamu buat akan tampil di sini.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {myOrders.map((order) => (
+                  <Link
+                    key={order.id}
+                    href={`/pesanan/${order.id}`}
+                    className="flex items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 transition-colors hover:border-orange-300 sm:p-5"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
+                        <span className="font-mono text-lg font-bold text-red-600 tabular-nums">
+                          {order.nomorPesanan}
+                        </span>
+                        <span
+                          className={`text-sm font-bold ${getOrderStatusColor(
+                            order
+                          )}`}
+                        >
+                          {getOrderStatusText(order)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-stone-500">
+                        {formatTanggalJamWib(order.waktuDibuat)} ·{' '}
+                        {order.daftarTopping.length} topping
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-right">
+                        <p className="font-mono text-base font-bold text-stone-900 tabular-nums">
+                          {formatRupiah(order.totalHarga)}
+                        </p>
+                        {order.statusBayar === 'Menunggu Pembayaran' && (
+                          <p className="text-xs font-semibold text-red-600">
+                            Lanjut Bayar
+                          </p>
+                        )}
+                      </div>
+                      <ChevronRight
+                        className="h-5 w-5 text-stone-400"
+                        aria-hidden="true"
+                      />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </section>
-        </div>
+        )}
       </main>
 
       {/* Footer */}

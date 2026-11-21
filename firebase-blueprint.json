@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "Pelanggan": {
+      "title": "Pelanggan",
+      "description": "Profil akun pelanggan Aci Rivi yang terhubung dengan UID Firebase Authentication.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "UID akun Firebase Auth milik pelanggan.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "nama": {
+          "type": "string",
+          "description": "Nama lengkap pelanggan.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Email akun pelanggan.",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "nomorWhatsApp": {
+          "type": "string",
+          "description": "Nomor WhatsApp pelanggan berawalan 08 atau 62 (10-14 digit).",
+          "minLength": 10,
+          "maxLength": 14,
+          "pattern": "^(08|62)[0-9]{8,12}$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Waktu pembuatan profil dari server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Waktu pembaruan profil terakhir dari server timestamp."
+        }
+      },
+      "required": ["uid", "nama", "email", "nomorWhatsApp", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/pelanggan/{pelangganId}": {
+      "schema": {
+        "$ref": "#/entities/Pelanggan"
+      },
+      "description": "Koleksi profil pelanggan dengan ID dokumen sama dengan uid Firebase Authentication."
+    }
+  }
+}

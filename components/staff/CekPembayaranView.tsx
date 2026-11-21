@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -9,6 +9,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import { ErrorRetryCard, OrderListSkeleton } from '@/components/Skeletons';
 import {
   konfirmasiPembayaranPegawai,
   tolakPembayaranPegawai,
@@ -25,21 +26,34 @@ const ALASAN_CEPAT = [
 
 export function CekPembayaranView() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [zoomProofUrl, setZoomProofUrl] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
 
+  const sync = useCallback(() => {
+    try {
+      setOrders(getPendingPaymentOrders());
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const sync = () => setOrders(getPendingPaymentOrders());
-    sync();
+    const initTimer = window.setTimeout(sync, 0);
     const unsub = subscribeDataChanges(sync);
     const interval = window.setInterval(sync, 2500);
     return () => {
+      window.clearTimeout(initTimer);
       unsub();
       window.clearInterval(interval);
     };
-  }, []);
+  }, [sync]);
 
   const handleConfirm = async (order: Order) => {
     setActionErrors((prev) => ({ ...prev, [order.id]: '' }));
@@ -59,6 +73,14 @@ export function CekPembayaranView() {
     setRejectReason('');
     setActionErrors((prev) => ({ ...prev, [orderId]: '' }));
   };
+
+  if (isLoading) {
+    return <OrderListSkeleton count={3} />;
+  }
+
+  if (loadError) {
+    return <ErrorRetryCard message="Gagal memuat" onRetry={sync} />;
+  }
 
   if (orders.length === 0) {
     return (

@@ -1,0 +1,70 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: tolak semua akses default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(pelangganId) {
+      return isSignedIn() && request.auth.uid == pelangganId;
+    }
+
+    function isValidPelanggan(data, pelangganId) {
+      return data.keys().hasAll(['uid', 'nama', 'email', 'nomorWhatsApp', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'nama', 'email', 'nomorWhatsApp', 'createdAt', 'updatedAt'])
+        && data.uid is string
+        && data.uid == pelangganId
+        && isValidId(data.uid)
+        && data.nama is string
+        && data.nama.size() >= 1
+        && data.nama.size() <= 100
+        && data.email is string
+        && data.email.size() >= 3
+        && data.email.size() <= 160
+        && data.nomorWhatsApp is string
+        && data.nomorWhatsApp.size() >= 10
+        && data.nomorWhatsApp.size() <= 14
+        && data.nomorWhatsApp.matches('^(08|62)[0-9]{8,12}$')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Profil pelanggan (PII terisolasi per pemilik akun)
+    match /pelanggan/{pelangganId} {
+      allow get: if isValidId(pelangganId) && isOwner(pelangganId);
+      allow list: if false;
+      allow create: if isValidId(pelangganId)
+        && isOwner(pelangganId)
+        && isValidPelanggan(incoming(), pelangganId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(pelangganId)
+        && isOwner(pelangganId)
+        && isValidPelanggan(incoming(), pelangganId)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['nama', 'nomorWhatsApp', 'updatedAt'])
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if false;
+    }
+  }
+}

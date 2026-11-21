@@ -1,25 +1,37 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Hourglass, XCircle } from 'lucide-react';
+import { useCustomerAuth } from '@/components/AuthProvider';
+import { CustomerHeader } from '@/components/CustomerHeader';
 import { OrderStatusTracker } from '@/components/OrderStatusTracker';
 import { PaymentQrisSection } from '@/components/PaymentQrisSection';
+import { ErrorRetryCard, OrderDetailSkeleton } from '@/components/Skeletons';
 import { getOrderById, subscribeDataChanges } from '@/lib/storage';
 import { formatRupiah } from '@/lib/time';
 import type { Order } from '@/lib/types';
 
 function PesananDetailContent() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const { user, authReady } = useCustomerAuth();
+
   const [order, setOrder] = useState<Order | null | undefined>(undefined);
+  const [loadError, setLoadError] = useState(false);
   const [justPaidBanner, setJustPaidBanner] = useState(false);
   const prevStatusRef = useRef<Order['statusBayar'] | null>(null);
 
   useEffect(() => {
-    const orderId = params.id;
-    const sync = () => {
-      const latest = getOrderById(orderId) ?? null;
+    if (authReady && !user) {
+      router.replace(`/masuk?next=${encodeURIComponent(`/pesanan/${params.id}`)}`);
+    }
+  }, [authReady, user, params.id, router]);
+
+  const syncOrder = useCallback(() => {
+    try {
+      const latest = getOrderById(params.id) ?? null;
       if (latest) {
         if (
           prevStatusRef.current === 'Menunggu Konfirmasi' &&
@@ -30,58 +42,66 @@ function PesananDetailContent() {
         prevStatusRef.current = latest.statusBayar;
       }
       setOrder(latest);
-    };
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    }
+  }, [params.id]);
 
-    sync();
-    const unsubscribe = subscribeDataChanges(sync);
-    const interval = window.setInterval(sync, 2000);
+  useEffect(() => {
+    if (!authReady || !user) return;
+    const initTimer = window.setTimeout(syncOrder, 0);
+    const unsubscribe = subscribeDataChanges(syncOrder);
+    const interval = window.setInterval(syncOrder, 2000);
 
     return () => {
+      window.clearTimeout(initTimer);
       unsubscribe();
       window.clearInterval(interval);
     };
-  }, [params.id]);
+  }, [authReady, user, syncOrder]);
 
-  const pageTitle =
-    order?.statusBayar === 'Menunggu Pembayaran' ||
-    order?.statusBayar === 'Ditolak'
-      ? 'Pembayaran QRIS'
-      : order?.statusBayar === 'Menunggu Konfirmasi'
-        ? 'Cek Pembayaran'
-        : 'Status Pesanan';
+  const isUnauthorizedOrder =
+    Boolean(order) && Boolean(user) && order?.uid !== user?.uid;
 
   return (
     <div className="min-h-screen bg-[#F7F6F5]">
-      <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4 sm:px-6">
+      <CustomerHeader />
+
+      <div className="border-b border-stone-200 bg-white">
+        <div className="mx-auto flex h-12 max-w-2xl items-center justify-between px-4 sm:px-6">
           <Link
             href="/"
-            className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-semibold text-stone-700 hover:text-red-600"
+            className="inline-flex min-h-[40px] items-center gap-1.5 text-sm font-semibold text-stone-700 hover:text-red-600"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             <span>Beranda</span>
           </Link>
-          <h1 className="text-base font-bold text-stone-900">{pageTitle}</h1>
-          <span className="text-sm font-bold text-red-600">Aci Rivi</span>
+          <span className="text-sm font-bold text-stone-900">
+            Detail Pesanan
+          </span>
+          <span className="w-16" aria-hidden="true" />
         </div>
-      </header>
+      </div>
 
       <main className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
-        {order === undefined ? (
-          <div className="rounded-3xl border border-stone-200 bg-white p-8 text-center">
-            <p className="text-sm text-stone-500">Memuat data pesanan...</p>
-          </div>
-        ) : order === null ? (
+        {!authReady || !user || order === undefined ? (
+          <OrderDetailSkeleton />
+        ) : loadError ? (
+          <ErrorRetryCard message="Gagal memuat" onRetry={syncOrder} />
+        ) : order === null || isUnauthorizedOrder ? (
           <div className="rounded-3xl border border-stone-200 bg-white p-8 text-center">
             <XCircle
               className="mx-auto h-12 w-12 text-stone-400"
               aria-hidden="true"
             />
             <h2 className="mt-3 text-xl font-bold text-stone-900">
-              Nomor pesanan tidak ditemukan
+              Pesanan tidak ditemukan
             </h2>
             <p className="mt-1 text-sm text-stone-600">
-              Periksa kembali nomor pesanan yang kamu masukkan.
+              {isUnauthorizedOrder
+                ? 'Kamu hanya dapat melihat pesanan milik akunmu sendiri.'
+                : 'Periksa kembali daftar pesananmu di Beranda.'}
             </p>
             <Link
               href="/"
@@ -191,8 +211,10 @@ export default function PesananStatusPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#F7F6F5] p-6">
-          <p className="text-sm text-stone-500">Memuat status pesanan...</p>
+        <div className="min-h-screen bg-[#F7F6F5]">
+          <div className="mx-auto max-w-2xl px-4 py-10">
+            <OrderDetailSkeleton />
+          </div>
         </div>
       }
     >

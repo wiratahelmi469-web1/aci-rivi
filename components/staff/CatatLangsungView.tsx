@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
+import { ErrorRetryCard, ToppingGridSkeleton } from '@/components/Skeletons';
 import { ToppingGrid } from '@/components/ToppingGrid';
 import {
   createPrasmananOrder,
@@ -21,6 +22,8 @@ export function CatatLangsungView({
   onLihatPesananMasuk,
 }: CatatLangsungViewProps) {
   const [toppings, setToppings] = useState<Topping[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [nama, setNama] = useState('');
   const [catatan, setCatatan] = useState('');
@@ -28,8 +31,8 @@ export function CatatLangsungView({
   const [namaError, setNamaError] = useState('');
   const [savedOrder, setSavedOrder] = useState<Order | null>(null);
 
-  useEffect(() => {
-    const sync = () => {
+  const sync = useCallback(() => {
+    try {
       const latest = getToppings();
       setToppings(latest);
       setSelectedIds((prev) =>
@@ -38,10 +41,22 @@ export function CatatLangsungView({
           return item && item.tersedia && item.stok > 0;
         })
       );
-    };
-    sync();
-    return subscribeDataChanges(sync);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    const initTimer = window.setTimeout(sync, 0);
+    const unsub = subscribeDataChanges(sync);
+    return () => {
+      window.clearTimeout(initTimer);
+      unsub();
+    };
+  }, [sync]);
 
   const selectedToppings = useMemo(
     () =>
@@ -224,12 +239,18 @@ export function CatatLangsungView({
           </span>
         </div>
 
-        <ToppingGrid
-          toppings={toppings}
-          selectedIds={selectedIds}
-          onToggle={handleToggle}
-          onUnavailableTap={() => setErrorMsg('Topping ini sudah habis')}
-        />
+        {isLoading ? (
+          <ToppingGridSkeleton count={8} />
+        ) : loadError ? (
+          <ErrorRetryCard message="Gagal memuat" onRetry={sync} />
+        ) : (
+          <ToppingGrid
+            toppings={toppings}
+            selectedIds={selectedIds}
+            onToggle={handleToggle}
+            onUnavailableTap={() => setErrorMsg('Topping ini sudah habis')}
+          />
+        )}
       </div>
 
       {errorMsg && (

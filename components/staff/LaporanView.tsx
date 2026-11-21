@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FileDown, ReceiptText } from 'lucide-react';
 import { OrderDetailModal } from '@/components/OrderDetailModal';
+import { ErrorRetryCard, OrderListSkeleton } from '@/components/Skeletons';
 import { hitungStatistikLaporan, unduhLaporanPdf } from '@/lib/pdfReport';
 import { getStaffOrders, subscribeDataChanges } from '@/lib/storage';
 import {
@@ -21,14 +22,30 @@ const PERIODE_TABS: Array<{ id: PeriodeLaporan; label: string }> = [
 
 export function LaporanView() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [periode, setPeriode] = useState<PeriodeLaporan>('hari');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  useEffect(() => {
-    const sync = () => setOrders(getStaffOrders());
-    sync();
-    return subscribeDataChanges(sync);
+  const sync = useCallback(() => {
+    try {
+      setOrders(getStaffOrders());
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    const initTimer = window.setTimeout(sync, 0);
+    const unsub = subscribeDataChanges(sync);
+    return () => {
+      window.clearTimeout(initTimer);
+      unsub();
+    };
+  }, [sync]);
 
   const periodInfo = useMemo(() => getPeriodInfoWib(periode), [periode]);
 
@@ -134,7 +151,11 @@ export function LaporanView() {
       </div>
 
       {/* Daftar Riwayat Pesanan */}
-      {filteredOrders.length === 0 ? (
+      {isLoading ? (
+        <OrderListSkeleton count={4} />
+      ) : loadError ? (
+        <ErrorRetryCard message="Gagal memuat" onRetry={sync} />
+      ) : filteredOrders.length === 0 ? (
         <div className="rounded-3xl border border-stone-200 bg-white p-10 text-center">
           <ReceiptText
             className="mx-auto h-10 w-10 text-stone-300"

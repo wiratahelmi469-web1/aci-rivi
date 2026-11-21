@@ -32,6 +32,7 @@ export interface OrderTopping {
 
 export interface Order {
   id: string;
+  uid?: string; // UID pelanggan pembuat pesanan (untuk pesanan Online)
   nomorPesanan: string;
   nama: string;
   nomorWhatsApp: string;

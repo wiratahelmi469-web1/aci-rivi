@@ -9,7 +9,8 @@ import {
 } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ArrowLeft, Lock, LogOut } from 'lucide-react';
+import { ArrowLeft, Loader2, Lock, LogOut } from 'lucide-react';
+import { SplashScreen } from '@/components/SplashScreen';
 
 interface StaffAuthContextValue {
   authenticated: boolean;
@@ -44,6 +45,7 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showStaffSplash, setShowStaffSplash] = useState(false);
 
   // State form login PIN
   const [pinInput, setPinInput] = useState('');
@@ -91,6 +93,14 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
     }
   }, [loading, authenticated, pathname, router]);
 
+  useEffect(() => {
+    if (!showStaffSplash) return;
+    const timer = window.setTimeout(() => {
+      setShowStaffSplash(false);
+    }, 750);
+    return () => window.clearTimeout(timer);
+  }, [showStaffSplash]);
+
   const submitPin = async (candidate: string) => {
     if (!candidate.trim() || isSubmitting) return;
     setIsSubmitting(true);
@@ -112,6 +122,7 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
       if (res.ok && data.authenticated) {
         setPinInput('');
         setPinError('');
+        setShowStaffSplash(true);
         setAuthenticated(true);
       } else {
         setPinError(data.error || 'PIN salah. Coba lagi.');
@@ -249,7 +260,14 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
                   disabled={isSubmitting || !pinInput}
                   className="flex h-13 items-center justify-center rounded-xl bg-red-600 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60"
                 >
-                  {isSubmitting ? '...' : 'Masuk'}
+                  {isSubmitting ? (
+                    <Loader2
+                      className="h-5 w-5 animate-spin motion-reduce:animate-none"
+                      aria-label="Memeriksa PIN"
+                    />
+                  ) : (
+                    'Masuk'
+                  )}
                 </button>
               </div>
             </form>
@@ -266,6 +284,10 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
     <StaffAuthContext.Provider
       value={{ authenticated, loading, logout, refreshAuth }}
     >
+      <SplashScreen
+        visible={showStaffSplash}
+        subtitle="Menyiapkan area pegawai..."
+      />
       <div className="min-h-screen bg-[#F7F6F5]">
         <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 backdrop-blur-sm">
           <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
