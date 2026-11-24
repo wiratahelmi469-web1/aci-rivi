@@ -3,16 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { updateProfile } from 'firebase/auth';
 import { ArrowLeft, CheckCircle2, Loader2, LogOut } from 'lucide-react';
 import { useCustomerAuth } from '@/components/AuthProvider';
 import { CustomerHeader } from '@/components/CustomerHeader';
 import { ErrorRetryCard, ProfileSkeleton } from '@/components/Skeletons';
-import { terjemahkanErrorFirebase } from '@/lib/firebase';
-import {
-  createPelangganProfile,
-  updatePelangganProfile,
-} from '@/lib/pelanggan';
+import { updatePelangganProfile } from '@/lib/pelanggan';
 import { getWhatsAppValidationError } from '@/lib/validation';
 
 export default function AkunSayaPage() {
@@ -69,24 +64,16 @@ export default function AkunSayaPage() {
     setIsSaving(true);
 
     try {
-      if (profile) {
-        await updatePelangganProfile(user.uid, {
-          nama: nama.trim(),
-          nomorWhatsApp: nomorWhatsApp.trim(),
-        });
-      } else {
-        await createPelangganProfile({
-          uid: user.uid,
-          nama: nama.trim(),
-          email: user.email || '',
-          nomorWhatsApp: nomorWhatsApp.trim(),
-        });
-      }
-      await updateProfile(user, { displayName: nama.trim() });
+      await updatePelangganProfile({
+        nama: nama.trim(),
+        nomorWhatsApp: nomorWhatsApp.trim(),
+      });
       await refreshProfile();
       setSavedNotice(true);
     } catch (err) {
-      setSaveError(terjemahkanErrorFirebase(err));
+      setSaveError(
+        err instanceof Error ? err.message : 'Gagal menyimpan perubahan'
+      );
     } finally {
       setIsSaving(false);
     }

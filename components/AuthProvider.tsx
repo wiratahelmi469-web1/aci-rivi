@@ -5,15 +5,21 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
-import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
+import { SessionProvider, signOut, useSession } from 'next-auth/react';
 import { SplashScreen } from '@/components/SplashScreen';
-import { auth, terjemahkanErrorFirebase } from '@/lib/firebase';
 import { getPelangganProfile, type PelangganProfile } from '@/lib/pelanggan';
 
+export interface CustomerUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+}
+
 interface AuthContextValue {
-  user: User | null;
+  user: CustomerUser | null;
   profile: PelangganProfile | null;
   authReady: boolean;
   profileLoading: boolean;
@@ -36,58 +42,62 @@ export function useCustomerAuth() {
   return useContext(AuthContext);
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+function AuthState({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession();
   const [profile, setProfile] = useState<PelangganProfile | null>(null);
-  const [authReady, setAuthReady] = useState(false);
   const [minDelayPassed, setMinDelayPassed] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  const loadProfileForUser = useCallback(async (uid: string) => {
+  const uid = session?.user?.id ?? null;
+  const authReady = status !== 'loading';
+
+  const user = useMemo<CustomerUser | null>(() => {
+    if (!uid) return null;
+    return {
+      uid,
+      email: session?.user?.email ?? null,
+      displayName: profile?.nama || session?.user?.name || null,
+    };
+  }, [uid, session, profile]);
+
+  const loadProfile = useCallback(async () => {
     setProfileLoading(true);
     setProfileError(null);
     try {
-      const data = await getPelangganProfile(uid);
-      setProfile(data);
+      setProfile(await getPelangganProfile());
     } catch (error) {
-      setProfileError(terjemahkanErrorFirebase(error));
+      setProfileError(
+        error instanceof Error ? error.message : 'Gagal memuat profil'
+      );
     } finally {
       setProfileLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setMinDelayPassed(true);
-    }, 1000);
+    const timer = window.setTimeout(() => setMinDelayPassed(true), 1000);
+    return () => window.clearTimeout(timer);
+  }, []);
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setAuthReady(true);
-
-      if (firebaseUser) {
-        void loadProfileForUser(firebaseUser.uid);
-      } else {
-        setProfile(null);
-        setProfileError(null);
-        setProfileLoading(false);
-      }
-    });
-
-    return () => {
-      window.clearTimeout(timer);
-      unsubscribe();
-    };
-  }, [loadProfileForUser]);
+  useEffect(() => {
+    if (!authReady) return;
+    if (uid) {
+      void loadProfile();
+    } else {
+      setProfile(null);
+      setProfileError(null);
+      setProfileLoading(false);
+    }
+  }, [authReady, uid, loadProfile]);
 
   const refreshProfile = useCallback(async () => {
-    if (!user) return;
-    await loadProfileForUser(user.uid);
-  }, [user, loadProfileForUser]);
+    if (!uid) return;
+    await loadProfile();
+  }, [uid, loadProfile]);
 
   const logoutCustomer = useCallback(async () => {
-    await signOut(auth);
+    await signOut({ redirect: false });
     setProfile(null);
   }, []);
 
@@ -108,5 +118,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       <SplashScreen visible={showSplash} />
       {children}
     </AuthContext.Provider>
+  );
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <SessionProvider>
+      <AuthState>{children}</AuthState>
+    </SessionProvider>
   );
 }

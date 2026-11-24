@@ -3,12 +3,10 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { signIn } from 'next-auth/react';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useCustomerAuth } from '@/components/AuthProvider';
 import { CustomerHeader } from '@/components/CustomerHeader';
-import { auth, terjemahkanErrorFirebase } from '@/lib/firebase';
-import { createPelangganProfile } from '@/lib/pelanggan';
 import { getWhatsAppValidationError, isValidEmail } from '@/lib/validation';
 
 function sanitizeNextPath(raw: string | null): string {
@@ -85,22 +83,34 @@ function DaftarContent() {
     setIsSubmitting(true);
 
     try {
-      const cred = await createUserWithEmailAndPassword(
-        auth,
-        email.trim(),
-        password
-      );
-      await updateProfile(cred.user, { displayName: nama.trim() });
-      await createPelangganProfile({
-        uid: cred.user.uid,
-        nama: nama.trim(),
-        email: email.trim(),
-        nomorWhatsApp: nomorWhatsApp.trim(),
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: nama.trim(),
+          email: email.trim(),
+          nomorWhatsApp: nomorWhatsApp.trim(),
+          password,
+        }),
       });
-      await refreshProfile();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFormError(data.error || 'Pendaftaran gagal, coba lagi');
+        return;
+      }
+
+      const login = await signIn('credentials', {
+        email: email.trim(),
+        password,
+        redirect: false,
+      });
+      if (login?.error) {
+        setFormError('Akun dibuat, tetapi gagal masuk otomatis. Silakan masuk manual.');
+        return;
+      }
       router.replace(nextPath);
-    } catch (err) {
-      setFormError(terjemahkanErrorFirebase(err));
+    } catch {
+      setFormError('Tidak dapat terhubung ke server. Coba lagi.');
     } finally {
       setIsSubmitting(false);
     }
@@ -122,7 +132,11 @@ function DaftarContent() {
             Buat akun pelanggan Aci Rivi supaya lebih cepat saat memesan.
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            suppressHydrationWarning
+            className="mt-6 space-y-4"
+          >
             <div>
               <label
                 htmlFor="daftar-nama"
@@ -135,6 +149,7 @@ function DaftarContent() {
                 type="text"
                 autoComplete="name"
                 value={nama}
+                suppressHydrationWarning
                 onChange={(e) => {
                   setNama(e.target.value);
                   if (fieldErrors.nama) {
@@ -167,6 +182,7 @@ function DaftarContent() {
                 type="email"
                 autoComplete="email"
                 value={email}
+                suppressHydrationWarning
                 onChange={(e) => {
                   setEmail(e.target.value);
                   if (fieldErrors.email) {
@@ -200,6 +216,7 @@ function DaftarContent() {
                 inputMode="numeric"
                 autoComplete="tel"
                 value={nomorWhatsApp}
+                suppressHydrationWarning
                 onChange={(e) => {
                   setNomorWhatsApp(e.target.value);
                   if (fieldErrors.nomorWhatsApp) {
@@ -233,6 +250,7 @@ function DaftarContent() {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   value={password}
+                  suppressHydrationWarning
                   onChange={(e) => {
                     setPassword(e.target.value);
                     if (fieldErrors.password) {
@@ -248,6 +266,7 @@ function DaftarContent() {
                 />
                 <button
                   type="button"
+                  suppressHydrationWarning
                   onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={
                     showPassword
@@ -283,6 +302,7 @@ function DaftarContent() {
                   type={showConfirm ? 'text' : 'password'}
                   autoComplete="new-password"
                   value={confirmPassword}
+                  suppressHydrationWarning
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
                     if (fieldErrors.confirmPassword) {
@@ -301,6 +321,7 @@ function DaftarContent() {
                 />
                 <button
                   type="button"
+                  suppressHydrationWarning
                   onClick={() => setShowConfirm((prev) => !prev)}
                   aria-label={
                     showConfirm
@@ -335,6 +356,7 @@ function DaftarContent() {
             <button
               type="submit"
               disabled={isSubmitting}
+              suppressHydrationWarning
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-6 text-base font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting && (

@@ -3,14 +3,10 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-} from 'firebase/auth';
-import { ArrowLeft, CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { signIn } from 'next-auth/react';
+import { ArrowLeft, Eye, EyeOff, Info, Loader2 } from 'lucide-react';
 import { useCustomerAuth } from '@/components/AuthProvider';
 import { CustomerHeader } from '@/components/CustomerHeader';
-import { auth, terjemahkanErrorFirebase } from '@/lib/firebase';
 import { isValidEmail } from '@/lib/validation';
 
 function sanitizeNextPath(raw: string | null): string {
@@ -32,7 +28,6 @@ function MasukContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
-  const [resetSent, setResetSent] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string;
     password?: string;
@@ -70,10 +65,19 @@ function MasukContent() {
     setIsSubmitting(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      const result = await signIn('credentials', {
+        email: email.trim(),
+        password,
+        redirect: false,
+      });
+      if (result?.error) {
+        setFormError('Email atau kata sandi salah.');
+        return;
+      }
       router.replace(nextPath);
-    } catch (err) {
-      setFormError(terjemahkanErrorFirebase(err));
+      router.refresh();
+    } catch {
+      setFormError('Tidak dapat terhubung ke server. Coba lagi.');
     } finally {
       setIsSubmitting(false);
     }
@@ -81,26 +85,14 @@ function MasukContent() {
 
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
-
     if (!email.trim() || !isValidEmail(email)) {
       setFieldErrors({ email: 'Masukkan format email yang valid' });
       return;
     }
-
     setFieldErrors({});
-    setFormError('');
-    setResetSent(false);
-    setIsSubmitting(true);
-
-    try {
-      await sendPasswordResetEmail(auth, email.trim());
-      setResetSent(true);
-    } catch (err) {
-      setFormError(terjemahkanErrorFirebase(err));
-    } finally {
-      setIsSubmitting(false);
-    }
+    setFormError(
+      'Fitur reset kata sandi otomatis belum tersedia. Silakan hubungi pegawai/admin Aci Rivi untuk bantuan reset akun.'
+    );
   };
 
   const daftarHref =
@@ -121,7 +113,11 @@ function MasukContent() {
                 Masuk dengan akunmu untuk memesan seblak Aci Rivi.
               </p>
 
-              <form onSubmit={handleLoginSubmit} className="mt-6 space-y-4">
+              <form
+                onSubmit={handleLoginSubmit}
+                suppressHydrationWarning
+                className="mt-6 space-y-4"
+              >
                 <div>
                   <label
                     htmlFor="masuk-email"
@@ -134,6 +130,7 @@ function MasukContent() {
                     type="email"
                     autoComplete="email"
                     value={email}
+                    suppressHydrationWarning
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (fieldErrors.email) {
@@ -168,7 +165,6 @@ function MasukContent() {
                         setMode('reset');
                         setFormError('');
                         setFieldErrors({});
-                        setResetSent(false);
                       }}
                       className="text-xs font-semibold text-red-600 hover:underline"
                     >
@@ -182,6 +178,7 @@ function MasukContent() {
                       type={showPassword ? 'text' : 'password'}
                       autoComplete="current-password"
                       value={password}
+                      suppressHydrationWarning
                       onChange={(e) => {
                         setPassword(e.target.value);
                         if (fieldErrors.password) {
@@ -200,6 +197,7 @@ function MasukContent() {
                     />
                     <button
                       type="button"
+                      suppressHydrationWarning
                       onClick={() => setShowPassword((prev) => !prev)}
                       aria-label={
                         showPassword
@@ -234,6 +232,7 @@ function MasukContent() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
+                  suppressHydrationWarning
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-6 text-base font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting && (
@@ -264,7 +263,6 @@ function MasukContent() {
                   setMode('login');
                   setFormError('');
                   setFieldErrors({});
-                  setResetSent(false);
                 }}
                 className="inline-flex min-h-[40px] items-center gap-1.5 text-sm font-semibold text-stone-600 hover:text-red-600"
               >
@@ -279,7 +277,18 @@ function MasukContent() {
                 Masukkan email akunmu untuk menerima tautan reset kata sandi.
               </p>
 
-              <form onSubmit={handleResetSubmit} className="mt-6 space-y-4">
+              <form
+                onSubmit={handleResetSubmit}
+                suppressHydrationWarning
+                className="mt-6 space-y-4"
+              >
+                <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-900">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <p>
+                    Reset kata sandi otomatis lewat email belum tersedia setelah migrasi akun. Hubungi pegawai/admin Aci Rivi untuk bantuan reset.
+                  </p>
+                </div>
+
                 <div>
                   <label
                     htmlFor="reset-email"
@@ -292,6 +301,7 @@ function MasukContent() {
                     type="email"
                     autoComplete="email"
                     value={email}
+                    suppressHydrationWarning
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (fieldErrors.email) {
@@ -321,28 +331,12 @@ function MasukContent() {
                   </div>
                 )}
 
-                {resetSent && (
-                  <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm font-semibold text-emerald-800">
-                    <CheckCircle2
-                      className="h-4 w-4 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <span>Tautan reset sudah dikirim, cek email kamu</span>
-                  </div>
-                )}
-
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-6 text-base font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  suppressHydrationWarning
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-6 text-base font-bold text-white transition-colors hover:bg-red-700"
                 >
-                  {isSubmitting && (
-                    <Loader2
-                      className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                      aria-hidden="true"
-                    />
-                  )}
-                  <span>{isSubmitting ? 'Mengirim...' : 'Kirim'}</span>
+                  <span>Butuh Bantuan Reset</span>
                 </button>
               </form>
             </>
