@@ -7,7 +7,7 @@ import { staffGuard } from '@/lib/staff-session';
 
 export const dynamic = 'force-dynamic';
 
-export const FOTO_REGEX = /^data:image\/(jpeg|png|webp);base64,/;
+const FOTO_REGEX = /^data:image\/(jpeg|png|webp);base64,/;
 
 export async function GET() {
   try {

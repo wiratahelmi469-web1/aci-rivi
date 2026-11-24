@@ -82,13 +82,23 @@ function AuthState({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!authReady) return;
-    if (uid) {
-      void loadProfile();
-    } else {
-      setProfile(null);
-      setProfileError(null);
-      setProfileLoading(false);
-    }
+
+    let cancelled = false;
+    void Promise.resolve().then(async () => {
+      if (cancelled) return;
+      if (uid) {
+        await loadProfile();
+      } else {
+        if (cancelled) return;
+        setProfile(null);
+        setProfileError(null);
+        setProfileLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [authReady, uid, loadProfile]);
 
   const refreshProfile = useCallback(async () => {

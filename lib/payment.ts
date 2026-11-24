@@ -3,8 +3,8 @@ import {
   getToppings,
   markOrderExpired,
   saveOrders,
-  saveToppings,
 } from './storage';
+import { refreshToppings, updateTopping } from './toppingsStore';
 import type { Order } from './types';
 
 export type HasilAksiPembayaran =
@@ -112,7 +112,7 @@ export async function konfirmasiPembayaranPegawai(
   }
 
   // Cek stok ulang sebelum resmi masuk ke Pesanan Masuk
-  const currentToppings = getToppings();
+  const currentToppings = await refreshToppings().catch(() => getToppings());
   const toppingHabis: string[] = [];
 
   for (const item of targetOrder.daftarTopping) {
@@ -131,12 +131,23 @@ export async function konfirmasiPembayaranPegawai(
     };
   }
 
-  // Kurangi stok setiap topping dan set status Lunas + Baru
-  const selectedIds = new Set(targetOrder.daftarTopping.map((t) => t.id));
-  const updatedToppings = currentToppings.map((t) =>
-    selectedIds.has(t.id) ? { ...t, stok: Math.max(0, t.stok - 1) } : t
-  );
-  saveToppings(updatedToppings);
+  // Kurangi stok setiap topping di server, lalu set status Lunas + Baru
+  for (const item of targetOrder.daftarTopping) {
+    const found = currentToppings.find((t) => t.id === item.id);
+    if (!found) continue;
+    const result = await updateTopping(
+      item.id,
+      { stok: Math.max(0, found.stok - 1) },
+      { immediate: true }
+    );
+    if (!result.ok) {
+      return {
+        sukses: false,
+        alasan: 'input_tidak_valid',
+        pesan: result.error,
+      };
+    }
+  }
 
   const paidOrder: Order = {
     ...targetOrder,

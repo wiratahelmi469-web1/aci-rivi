@@ -9,7 +9,6 @@ import { CustomerHeader } from '@/components/CustomerHeader';
 import { ErrorRetryCard, OrderListSkeleton } from '@/components/Skeletons';
 import {
   getCustomerOrders,
-  seedInitialToppingsIfNeeded,
   subscribeDataChanges,
 } from '@/lib/storage';
 import { formatRupiah, formatTanggalJamWib } from '@/lib/time';
@@ -43,7 +42,6 @@ export default function HomePage() {
 
   const loadOrders = useCallback(() => {
     try {
-      seedInitialToppingsIfNeeded();
       if (user) {
         setMyOrders(getCustomerOrders(user.uid));
       } else {
