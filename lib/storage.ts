@@ -1,17 +1,30 @@
-import { BATAS_BAYAR_MENIT, INITIAL_TOPPINGS } from './constants';
+import { BATAS_BAYAR_MENIT } from './constants';
 import { getWibParts } from './time';
+import {
+  DATA_CHANGED_EVENT,
+  getToppings,
+  startToppingsSync,
+  updateTopping,
+} from './toppingsStore';
 import type {
   Order,
   OrderTopping,
   StatusPesanan,
   StoreSettings,
-  Topping,
 } from './types';
 
-const TOPPINGS_KEY = 'aci_rivi_toppings_v1';
+export {
+  addTopping,
+  deleteTopping,
+  getToppings,
+  loadToppings,
+  refreshToppings,
+  updateTopping,
+} from './toppingsStore';
+
 const ORDERS_KEY = 'aci_rivi_orders_v1';
 const SETTINGS_KEY = 'aci_rivi_settings_v1';
-const SYNC_EVENT = 'aci-rivi-data-changed';
+const SYNC_EVENT = DATA_CHANGED_EVENT;
 const CHANNEL_NAME = 'aci-rivi-sync';
 
 let broadcastChannel: BroadcastChannel | null = null;
@@ -41,11 +54,7 @@ export function subscribeDataChanges(callback: () => void): () => void {
 
   const handleLocal = () => callback();
   const handleStorage = (e: StorageEvent) => {
-    if (
-      e.key === TOPPINGS_KEY ||
-      e.key === ORDERS_KEY ||
-      e.key === SETTINGS_KEY
-    ) {
+    if (e.key === ORDERS_KEY || e.key === SETTINGS_KEY) {
       callback();
     }
   };
@@ -56,7 +65,11 @@ export function subscribeDataChanges(callback: () => void): () => void {
   window.addEventListener('storage', handleStorage);
   ch?.addEventListener('message', handleChannel);
 
+  // Topping dibaca dari server dan diperbarui berkala
+  const stopToppingsSync = startToppingsSync();
+
   return () => {
+    stopToppingsSync();
     window.removeEventListener(SYNC_EVENT, handleLocal);
     window.removeEventListener('storage', handleStorage);
     ch?.removeEventListener('message', handleChannel);
@@ -97,81 +110,6 @@ export function saveQrisImage(qrisImage: string): void {
     qrisImage,
     qrisUpdatedAt: new Date().toISOString(),
   });
-}
-
-export function seedInitialToppingsIfNeeded(): Topping[] {
-  if (typeof window === 'undefined') return INITIAL_TOPPINGS;
-  const existing = window.localStorage.getItem(TOPPINGS_KEY);
-  if (existing === null) {
-    window.localStorage.setItem(TOPPINGS_KEY, JSON.stringify(INITIAL_TOPPINGS));
-    return INITIAL_TOPPINGS;
-  }
-  return readJson<Topping[]>(TOPPINGS_KEY, INITIAL_TOPPINGS);
-}
-
-export function getToppings(): Topping[] {
-  return seedInitialToppingsIfNeeded();
-}
-
-export function saveToppings(toppings: Topping[]): void {
-  writeJson(TOPPINGS_KEY, toppings);
-}
-
-export function addTopping(input: {
-  nama: string;
-  emoji: string;
-  foto?: string;
-  harga: number;
-  stok: number;
-}): Topping {
-  const current = getToppings();
-  const cleanId =
-    input.nama
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '') +
-    '-' +
-    Date.now().toString(36).slice(-4);
-
-  const newItem: Topping = {
-    id: cleanId || `topping-${Date.now()}`,
-    nama: input.nama.trim(),
-    emoji: input.emoji.trim() || '🍲',
-    foto: input.foto || undefined,
-    harga: Math.max(0, Math.round(input.harga)),
-    stok: Math.max(0, Math.round(input.stok)),
-    tersedia: true,
-  };
-  saveToppings([...current, newItem]);
-  return newItem;
-}
-
-export function updateTopping(
-  id: string,
-  patch: Partial<Omit<Topping, 'id'>>
-): void {
-  const current = getToppings();
-  const updated = current.map((item) => {
-    if (item.id !== id) return item;
-    return {
-      ...item,
-      ...patch,
-      stok:
-        patch.stok !== undefined
-          ? Math.max(0, Math.round(patch.stok))
-          : item.stok,
-      harga:
-        patch.harga !== undefined
-          ? Math.max(0, Math.round(patch.harga))
-          : item.harga,
-    };
-  });
-  saveToppings(updated);
-}
-
-export function deleteTopping(id: string): void {
-  const current = getToppings();
-  saveToppings(current.filter((item) => item.id !== id));
 }
 
 export function getAllOrders(): Order[] {
@@ -337,11 +275,13 @@ export function createPrasmananOrder(input: {
     };
   }
 
-  const selectedIds = new Set(input.daftarTopping.map((t) => t.id));
-  const updatedToppings = toppings.map((t) =>
-    selectedIds.has(t.id) ? { ...t, stok: Math.max(0, t.stok - 1) } : t
-  );
-  saveToppings(updatedToppings);
+  // Kurangi stok di server (perubahan langsung terlihat, disimpan setelahnya)
+  for (const selected of input.daftarTopping) {
+    const current = toppings.find((t) => t.id === selected.id);
+    if (current) {
+      void updateTopping(current.id, { stok: Math.max(0, current.stok - 1) });
+    }
+  }
 
   const orders = getAllOrders();
   const now = new Date();

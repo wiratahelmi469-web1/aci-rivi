@@ -1,25 +1,12 @@
 import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  STAFF_COOKIE_NAME as COOKIE_NAME,
+  getSessionSecret,
+  verifyToken,
+} from '@/lib/staff-session';
 
-const COOKIE_NAME = 'aci_rivi_staff_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 12; // 12 jam
-
-// Kunci penanda sesi di memori proses (atau dari env STAFF_SESSION_SECRET jika tersedia)
-const globalForAuth = globalThis as unknown as {
-  __aciRiviSessionSecret?: string;
-};
-
-function getSessionSecret(): string {
-  if (process.env.STAFF_SESSION_SECRET) {
-    return process.env.STAFF_SESSION_SECRET;
-  }
-  if (!globalForAuth.__aciRiviSessionSecret) {
-    globalForAuth.__aciRiviSessionSecret = crypto
-      .randomBytes(32)
-      .toString('hex');
-  }
-  return globalForAuth.__aciRiviSessionSecret;
-}
 
 function getConfiguredPin(): string {
   const envPin = process.env.STAFF_PIN?.trim();
@@ -38,26 +25,6 @@ function signToken(payload: string): string {
     .update(payload)
     .digest('hex');
   return `${payload}.${hmac}`;
-}
-
-function verifyToken(token: string | undefined): boolean {
-  if (!token) return false;
-  const parts = token.split('.');
-  if (parts.length !== 2) return false;
-  const [expStr, sig] = parts;
-  const exp = Number(expStr);
-  if (!Number.isFinite(exp) || Date.now() > exp) return false;
-
-  const expectedSig = crypto
-    .createHmac('sha256', getSessionSecret())
-    .update(expStr)
-    .digest('hex');
-
-  if (sig.length !== expectedSig.length) return false;
-  return crypto.timingSafeEqual(
-    Buffer.from(sig, 'utf8'),
-    Buffer.from(expectedSig, 'utf8')
-  );
 }
 
 function isSameOriginOrCustomHeader(req: NextRequest): boolean {
