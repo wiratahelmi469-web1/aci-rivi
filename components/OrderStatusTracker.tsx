@@ -17,26 +17,26 @@ const TAHAP_LIST: Array<{
 }> = [
   {
     status: 'Baru',
-    label: 'Pesanan Diterima',
+    label: 'Pesanan diterima',
     deskripsi: 'Pesanan sudah masuk ke dapur Aci Rivi.',
     Icon: Clock,
   },
   {
     status: 'Sedang Dibuat',
-    label: 'Sedang Dibuat',
+    label: 'Sedang dibuat',
     deskripsi: 'Seblak pesananmu sedang dimasak.',
     Icon: ChefHat,
   },
   {
     status: 'Siap Diambil',
-    label: 'Siap Diambil',
-    deskripsi: 'Silakan ambil pesananmu di kasir Aci Rivi.',
+    label: 'Siap diambil',
+    deskripsi: 'Ambil pesananmu di kasir Aci Rivi.',
     Icon: PackageCheck,
   },
   {
     status: 'Selesai',
     label: 'Selesai',
-    deskripsi: 'Pesanan telah diambil. Terima kasih!',
+    deskripsi: 'Pesanan sudah diambil. Terima kasih!',
     Icon: CheckCircle2,
   },
 ];
@@ -45,13 +45,21 @@ export function OrderStatusTracker({
   order,
   justPaid = false,
 }: OrderStatusTrackerProps) {
-  const activeIndex = TAHAP_LIST.findIndex(
-    (t) => t.status === order.statusPesanan
-  );
+  const found = TAHAP_LIST.findIndex((t) => t.status === order.statusPesanan);
+  const activeIndex = found === -1 ? 0 : found;
+  const isReady = order.statusPesanan === 'Siap Diambil';
+  const isDone = order.statusPesanan === 'Selesai';
+  const current = TAHAP_LIST[activeIndex];
+
+  const heroClass = isReady
+    ? 'bg-red-600 text-white'
+    : isDone
+      ? 'border border-stone-200 bg-white text-stone-900'
+      : 'border border-stone-200 bg-white text-stone-900';
 
   return (
-    <div className="space-y-5">
-      {justPaid && (
+    <div className="space-y-4">
+      {justPaid && !isReady && !isDone && (
         <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
           <CheckCircle2
             className="h-6 w-6 shrink-0 text-emerald-600"
@@ -66,39 +74,82 @@ export function OrderStatusTracker({
         </div>
       )}
 
-      {/* Kartu Nomor Pesanan & Waktu Ambil */}
-      <div className="rounded-3xl border border-stone-200 bg-white p-6 text-center shadow-xs">
-        <p className="text-sm font-medium text-stone-500">Nomor Pesanan</p>
-        <p className="mt-1 font-mono text-5xl font-bold tracking-tight text-red-600 tabular-nums">
+      {/* Kartu utama: status + nomor pesanan */}
+      <section
+        aria-live="polite"
+        className={`rounded-3xl p-6 text-center ${heroClass}`}
+      >
+        <p
+          className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-bold ${
+            isReady
+              ? 'bg-white/20 text-white'
+              : isDone
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-orange-100 text-orange-800'
+          }`}
+        >
+          {!isDone && (
+            <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+              <span
+                className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 motion-reduce:animate-none ${
+                  isReady ? 'bg-white' : 'bg-orange-400'
+                }`}
+              />
+              <span
+                className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
+                  isReady ? 'bg-white' : 'bg-orange-500'
+                }`}
+              />
+            </span>
+          )}
+          {current.label}
+        </p>
+
+        <p
+          className={`mt-4 font-mono text-6xl font-bold tracking-tight tabular-nums ${
+            isReady ? 'text-white' : isDone ? 'text-stone-400' : 'text-red-600'
+          }`}
+        >
           {order.nomorPesanan}
         </p>
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-stone-600">
-          <span className="font-semibold text-stone-900">{order.nama}</span>
-          <span aria-hidden="true">·</span>
-          <span>
-            Ambil:{' '}
-            <strong className="text-stone-900">
+        <p
+          className={`mx-auto mt-3 max-w-xs text-sm leading-relaxed ${
+            isReady ? 'text-red-50' : 'text-stone-600'
+          }`}
+        >
+          {isReady
+            ? 'Tunjukkan nomor ini ke kasir untuk mengambil pesananmu.'
+            : isDone
+              ? current.deskripsi
+              : `${current.deskripsi} Halaman ini diperbarui otomatis.`}
+        </p>
+
+        <dl
+          className={`mt-5 grid grid-cols-2 gap-3 border-t pt-4 text-left text-sm ${
+            isReady ? 'border-white/20' : 'border-stone-100'
+          }`}
+        >
+          <div>
+            <dt className={isReady ? 'text-red-100' : 'text-stone-500'}>Atas nama</dt>
+            <dd className="mt-0.5 truncate font-semibold">{order.nama}</dd>
+          </div>
+          <div>
+            <dt className={isReady ? 'text-red-100' : 'text-stone-500'}>Waktu ambil</dt>
+            <dd className="mt-0.5 font-semibold">
               {order.waktuAmbil === 'Langsung'
                 ? 'Langsung di tempat'
                 : `${order.waktuAmbil} WIB`}
-            </strong>
-          </span>
-          <span aria-hidden="true">·</span>
-          <span>{order.sumber}</span>
-        </div>
-      </div>
+            </dd>
+          </div>
+        </dl>
+      </section>
 
-      {/* Pelacakan 4 Tahap Real-Time */}
-      <div className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 className="text-lg font-bold text-stone-900">Status Pesanan</h2>
-          <span className="text-xs font-medium text-stone-500">
-            Pembaruan otomatis
-          </span>
-        </div>
+      {/* Tahapan pesanan */}
+      <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6">
+        <h2 className="text-base font-bold text-stone-900">Perjalanan pesanan</h2>
 
-        <ol className="space-y-4">
+        <ol className="mt-4">
           {TAHAP_LIST.map((step, index) => {
             const isCompleted = index < activeIndex;
             const isCurrent = index === activeIndex;
@@ -106,11 +157,24 @@ export function OrderStatusTracker({
             const StepIcon = step.Icon;
 
             return (
-              <li key={step.status} className="flex items-start gap-3.5">
+              <li
+                key={step.status}
+                aria-current={isCurrent ? 'step' : undefined}
+                className="relative flex gap-3.5 pb-6 last:pb-0"
+              >
+                {index < TAHAP_LIST.length - 1 && (
+                  <span
+                    aria-hidden="true"
+                    className={`absolute top-10 left-5 -ml-px h-[calc(100%-2.5rem)] w-0.5 ${
+                      isCompleted ? 'bg-red-600' : 'bg-stone-200'
+                    }`}
+                  />
+                )}
+
                 <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                  className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
                     isCurrent
-                      ? 'bg-red-600 text-white shadow-xs'
+                      ? 'bg-red-600 text-white'
                       : isCompleted
                         ? 'bg-orange-100 text-red-700'
                         : 'bg-stone-100 text-stone-400'
@@ -129,13 +193,8 @@ export function OrderStatusTracker({
                       {step.label}
                     </p>
                     {isCurrent && (
-                      <span className="text-xs font-bold text-red-600">
-                        Saat ini
-                      </span>
-                    )}
-                    {isCompleted && (
-                      <span className="text-xs font-medium text-stone-500">
-                        Selesai
+                      <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-600">
+                        Sekarang
                       </span>
                     )}
                   </div>
@@ -151,14 +210,12 @@ export function OrderStatusTracker({
             );
           })}
         </ol>
-      </div>
+      </section>
 
-      {/* Ringkasan Topping */}
-      <div className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6">
-        <div className="flex items-center justify-between gap-2 border-b border-stone-100 pb-3">
-          <h2 className="text-base font-bold text-stone-900">
-            Ringkasan Pesanan
-          </h2>
+      {/* Ringkasan pesanan */}
+      <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6">
+        <div className="flex items-baseline justify-between gap-2 border-b border-stone-100 pb-3">
+          <h2 className="text-base font-bold text-stone-900">Ringkasan pesanan</h2>
           <span className="text-xs text-stone-500">
             {formatTanggalJamWib(order.waktuDibuat)}
           </span>
@@ -168,7 +225,7 @@ export function OrderStatusTracker({
           {order.daftarTopping.map((item, idx) => (
             <li
               key={`${item.id}-${idx}`}
-              className="flex items-center justify-between py-2.5 text-sm"
+              className="flex items-center justify-between gap-3 py-2.5 text-sm"
             >
               <span className="font-medium text-stone-800">
                 {item.emoji ? `${item.emoji} ` : ''}
@@ -189,12 +246,12 @@ export function OrderStatusTracker({
         )}
 
         <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-3">
-          <span className="text-base font-bold text-stone-900">Total Bayar</span>
+          <span className="text-base font-bold text-stone-900">Total</span>
           <span className="font-mono text-lg font-bold text-red-600 tabular-nums">
             {formatRupiah(order.totalHarga)}
           </span>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

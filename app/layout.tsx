@@ -1,6 +1,7 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { AuthProvider } from '@/components/AuthProvider';
+import { CustomerBottomNav } from '@/components/CustomerBottomNav';
 import './globals.css';
 
 const plusJakarta = localFont({
@@ -55,3 +56,12 @@ export default function RootLayout({
     </html>
   );
 }
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#DC2626',
+};
+
+ 

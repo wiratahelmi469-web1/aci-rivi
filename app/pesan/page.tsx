@@ -130,7 +130,7 @@ export default function PesanPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleLanjutBayar = (e: React.FormEvent) => {
+  const handleLanjutBayar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
@@ -154,21 +154,21 @@ export default function PesanPage() {
       return;
     }
 
-    const created = createOnlineOrder({
-      uid: user.uid,
+    const result = await createOnlineOrder({
       nama,
       nomorWhatsApp,
       catatan,
       waktuAmbil,
-      daftarTopping: selectedToppings.map((t) => ({
-        id: t.id,
-        nama: t.nama,
-        emoji: t.emoji,
-        harga: t.harga,
-      })),
+      toppingIds: selectedToppings.map((t) => t.id),
     });
 
-    router.push(`/pesanan/${created.id}`);
+    if (!result.ok) {
+      setToppingError(result.error);
+      setStep('topping');
+      return;
+    }
+
+    router.push(`/pesanan/${result.order.id}`);
   };
 
   if (!authReady || !user) {

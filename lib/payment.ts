@@ -1,35 +1,19 @@
 import {
-  getAllOrders,
-  getToppings,
+  confirmPayment,
   markOrderExpired,
-  saveOrders,
-} from './storage';
-import { refreshToppings, updateTopping } from './toppingsStore';
-import type { Order } from './types';
+  rejectPayment,
+  submitProof,
+  type HasilAksiPembayaran,
+} from './ordersStore';
 
-export type HasilAksiPembayaran =
-  | {
-      sukses: true;
-      order: Order;
-    }
-  | {
-      sukses: false;
-      alasan:
-        | 'tidak_ditemukan'
-        | 'kedaluwarsa'
-        | 'stok_habis'
-        | 'input_tidak_valid';
-      pesan: string;
-      toppingHabis?: string[];
-    };
+export type { HasilAksiPembayaran };
 
 /**
- * Modul pembayaran terpisah untuk QRIS toko (konfirmasi manual pegawai).
+ * Pembayaran QRIS toko dengan konfirmasi manual pegawai. Semua aturan (batas waktu,
+ * stok, siapa boleh konfirmasi) dijalankan server di /api/orders/[id].
  *
- * Saat integrasi ke payment gateway QRIS otomatis (Midtrans / Xendit):
- * cukup ganti alur ajukanBuktiPembayaran & konfirmasiPembayaranPegawai ini
- * dengan pembuatan QRIS dinamis + verifikasi webhook/status dari gateway
- * sebelum menjalankan pemotongan stok dan memindahkan status ke "Lunas".
+ * Saat pindah ke payment gateway (Midtrans / Xendit), ganti alur di route itu dengan
+ * QRIS dinamis + verifikasi webhook sebelum status berubah menjadi Lunas.
  */
 
 export async function ajukanBuktiPembayaran(
@@ -43,154 +27,26 @@ export async function ajukanBuktiPembayaran(
       pesan: 'Unggah foto bukti bayar yang valid terlebih dahulu.',
     };
   }
-
-  const orders = getAllOrders();
-  const targetOrder = orders.find((o) => o.id === orderId);
-
-  if (!targetOrder) {
-    return {
-      sukses: false,
-      alasan: 'tidak_ditemukan',
-      pesan: 'Pesanan tidak ditemukan.',
-    };
-  }
-
-  if (targetOrder.statusBayar === 'Lunas') {
-    return { sukses: true, order: targetOrder };
-  }
-
-  if (
-    targetOrder.statusBayar === 'Kedaluwarsa' ||
-    (targetOrder.statusBayar === 'Menunggu Pembayaran' &&
-      targetOrder.batasBayar &&
-      Date.now() > Date.parse(targetOrder.batasBayar))
-  ) {
-    markOrderExpired(orderId);
-    return {
-      sukses: false,
-      alasan: 'kedaluwarsa',
-      pesan: 'Waktu pembayaran sudah habis. Silakan buat pesanan baru.',
-    };
-  }
-
-  const updatedOrder: Order = {
-    ...targetOrder,
-    statusBayar: 'Menunggu Konfirmasi',
-    buktiBayar: buktiBayarDataUrl,
-    waktuUnggahBukti: new Date().toISOString(),
-    alasanPenolakan: undefined,
-  };
-
-  saveOrders(orders.map((o) => (o.id === orderId ? updatedOrder : o)));
-  return { sukses: true, order: updatedOrder };
+  return submitProof(orderId, buktiBayarDataUrl);
 }
 
-export async function konfirmasiPembayaranPegawai(
-  orderId: string
-): Promise<HasilAksiPembayaran> {
-  const orders = getAllOrders();
-  const targetOrder = orders.find((o) => o.id === orderId);
-
-  if (!targetOrder) {
-    return {
-      sukses: false,
-      alasan: 'tidak_ditemukan',
-      pesan: 'Pesanan tidak ditemukan.',
-    };
-  }
-
-  if (targetOrder.statusBayar === 'Lunas') {
-    return { sukses: true, order: targetOrder };
-  }
-
-  if (targetOrder.statusBayar === 'Kedaluwarsa') {
-    return {
-      sukses: false,
-      alasan: 'kedaluwarsa',
-      pesan: 'Pesanan ini sudah kedaluwarsa.',
-    };
-  }
-
-  // Cek stok ulang sebelum resmi masuk ke Pesanan Masuk
-  const currentToppings = await refreshToppings().catch(() => getToppings());
-  const toppingHabis: string[] = [];
-
-  for (const item of targetOrder.daftarTopping) {
-    const found = currentToppings.find((t) => t.id === item.id);
-    if (!found || !found.tersedia || found.stok < 1) {
-      toppingHabis.push(item.nama);
-    }
-  }
-
-  if (toppingHabis.length > 0) {
-    return {
-      sukses: false,
-      alasan: 'stok_habis',
-      toppingHabis,
-      pesan: `Stok topping ${toppingHabis.join(', ')} sudah tidak mencukupi. Tolak pembayaran agar pelanggan dapat menyesuaikan pesanan.`,
-    };
-  }
-
-  // Kurangi stok setiap topping di server, lalu set status Lunas + Baru
-  for (const item of targetOrder.daftarTopping) {
-    const found = currentToppings.find((t) => t.id === item.id);
-    if (!found) continue;
-    const result = await updateTopping(
-      item.id,
-      { stok: Math.max(0, found.stok - 1) },
-      { immediate: true }
-    );
-    if (!result.ok) {
-      return {
-        sukses: false,
-        alasan: 'input_tidak_valid',
-        pesan: result.error,
-      };
-    }
-  }
-
-  const paidOrder: Order = {
-    ...targetOrder,
-    statusBayar: 'Lunas',
-    statusPesanan: 'Baru',
-    alasanPenolakan: undefined,
-  };
-
-  saveOrders(orders.map((o) => (o.id === orderId ? paidOrder : o)));
-  return { sukses: true, order: paidOrder };
+export function konfirmasiPembayaranPegawai(orderId: string): Promise<HasilAksiPembayaran> {
+  return confirmPayment(orderId);
 }
 
 export async function tolakPembayaranPegawai(
   orderId: string,
   alasan: string
 ): Promise<HasilAksiPembayaran> {
-  const cleanReason = alasan.trim();
-  if (!cleanReason) {
+  const clean = alasan.trim();
+  if (!clean) {
     return {
       sukses: false,
       alasan: 'input_tidak_valid',
       pesan: 'Alasan penolakan wajib diisi.',
     };
   }
-
-  const orders = getAllOrders();
-  const targetOrder = orders.find((o) => o.id === orderId);
-  if (!targetOrder) {
-    return {
-      sukses: false,
-      alasan: 'tidak_ditemukan',
-      pesan: 'Pesanan tidak ditemukan.',
-    };
-  }
-
-  const rejectedOrder: Order = {
-    ...targetOrder,
-    statusBayar: 'Ditolak',
-    alasanPenolakan: cleanReason,
-  };
-
-  saveOrders(orders.map((o) => (o.id === orderId ? rejectedOrder : o)));
-  return { sukses: true, order: rejectedOrder };
+  return rejectPayment(orderId, clean);
 }
 
 export function batalkanPesananPelanggan(orderId: string): void {

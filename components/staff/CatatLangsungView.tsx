@@ -80,7 +80,7 @@ export function CatatLangsungView({
     );
   };
 
-  const handleSimpan = (e: React.FormEvent) => {
+  const handleSimpan = async (e: React.FormEvent) => {
     e.preventDefault();
     let hasError = false;
 
@@ -100,7 +100,7 @@ export function CatatLangsungView({
 
     if (hasError) return;
 
-    const result = createPrasmananOrder({
+    const result = await createPrasmananOrder({
       nama,
       catatan,
       daftarTopping: selectedToppings.map((t) => ({

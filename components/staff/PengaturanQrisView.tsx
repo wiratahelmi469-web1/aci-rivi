@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { CheckCircle2, ImagePlus, QrCode } from 'lucide-react';
-import { compressQrisPhoto } from '@/lib/imageCompress';
+import { useEffect, useState } from "react";
+import { CheckCircle2, ImagePlus, QrCode } from "lucide-react";
+import { compressQrisPhoto } from "@/lib/imageCompress";
 import {
   getStoreSettings,
   saveQrisImage,
   subscribeDataChanges,
-} from '@/lib/storage';
-import { formatTanggalJamWib } from '@/lib/time';
+} from "@/lib/storage";
+import { formatTanggalJamWib } from "@/lib/time";
 
 export function PengaturanQrisView() {
   const [qrisImage, setQrisImage] = useState<string | undefined>(undefined);
   const [updatedAt, setUpdatedAt] = useState<string | undefined>(undefined);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState("");
   const [savedNotice, setSavedNotice] = useState(false);
 
   useEffect(() => {
@@ -29,22 +29,24 @@ export function PengaturanQrisView() {
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    e.target.value = '';
+    e.target.value = "";
     if (!file) return;
 
-    setErrorMsg('');
+    setErrorMsg("");
     setSavedNotice(false);
     setIsProcessing(true);
 
     try {
       const compressed = await compressQrisPhoto(file);
-      saveQrisImage(compressed);
+      const res = await saveQrisImage(compressed);
+      if (!res.ok) throw new Error(res.error);
+      const settings = getStoreSettings();
+      setQrisImage(settings.qrisImage ?? compressed);
+      setUpdatedAt(settings.qrisUpdatedAt ?? new Date().toISOString());
       setSavedNotice(true);
     } catch (err) {
       setErrorMsg(
-        err instanceof Error
-          ? err.message
-          : 'Gagal menyimpan gambar QRIS.'
+        err instanceof Error ? err.message : "Gagal menyimpan gambar QRIS.",
       );
     } finally {
       setIsProcessing(false);
@@ -110,10 +112,10 @@ export function PengaturanQrisView() {
           <ImagePlus className="h-4 w-4" aria-hidden="true" />
           <span>
             {isProcessing
-              ? 'Memproses gambar...'
+              ? "Memproses gambar..."
               : qrisImage
-                ? 'Ganti Gambar QRIS'
-                : 'Unggah Gambar QRIS'}
+                ? "Ganti Gambar QRIS"
+                : "Unggah Gambar QRIS"}
           </span>
           <input
             type="file"
