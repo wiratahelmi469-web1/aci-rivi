@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { AuthBrandPanel } from '@/components/AuthBrandPanel';
 import { useCustomerAuth } from '@/components/AuthProvider';
 import { CustomerHeader } from '@/components/CustomerHeader';
 import { getWhatsAppValidationError, isValidEmail } from '@/lib/validation';
@@ -125,8 +126,9 @@ function DaftarContent() {
     <div className="flex min-h-screen flex-col bg-[#F7F6F5]">
       <CustomerHeader />
 
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-8 sm:px-6">
-        <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-xs sm:p-8">
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center gap-8 px-4 py-6 sm:px-6 sm:py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:items-center lg:gap-12 lg:px-8 lg:py-12">
+        <AuthBrandPanel />
+        <div className="mx-auto w-full max-w-[480px] rounded-3xl border border-stone-200 bg-white p-6 shadow-xs sm:p-8 lg:max-w-none">
           <h1 className="text-2xl font-bold text-stone-900">Daftar Akun</h1>
           <p className="mt-1 text-sm text-stone-600">
             Buat akun pelanggan Aci Rivi supaya lebih cepat saat memesan.

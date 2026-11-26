@@ -141,11 +141,11 @@ export function PaymentQrisSection({ order }: PaymentQrisSectionProps) {
   const progress = Math.max(0, Math.min(100, (remainingSeconds / TOTAL_DETIK) * 100));
 
   return (
-    <div className="space-y-4 pb-28">
+    <div className="grid grid-cols-1 gap-4 pb-[calc(7rem+env(safe-area-inset-bottom))] lg:grid-cols-2 lg:gap-6">
       {isRejected && (
         <div
           role="alert"
-          className="rounded-2xl border border-red-300 bg-red-50 p-4 text-red-900"
+          className="rounded-2xl border border-red-300 bg-red-50 p-4 text-red-900 lg:col-span-2"
         >
           <div className="flex items-start gap-2.5">
             <AlertCircle
@@ -166,7 +166,7 @@ export function PaymentQrisSection({ order }: PaymentQrisSectionProps) {
       )}
 
       {/* Total + sisa waktu */}
-      <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6">
+      <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6 lg:p-7">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-medium text-stone-500">Total yang dibayar</p>
@@ -214,7 +214,7 @@ export function PaymentQrisSection({ order }: PaymentQrisSectionProps) {
       </section>
 
       {/* QRIS */}
-      <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6">
+      <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6 lg:row-span-2 lg:p-7">
         <h2 className="text-base font-bold text-stone-900">Scan QRIS</h2>
 
         <div className="mt-3 rounded-2xl bg-stone-50 p-4 text-center">
@@ -279,7 +279,7 @@ export function PaymentQrisSection({ order }: PaymentQrisSectionProps) {
       </section>
 
       {/* Bukti bayar */}
-      <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6">
+      <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6 lg:p-7">
         <h2 className="text-base font-bold text-stone-900">
           Bukti bayar <span className="text-red-600">*</span>
         </h2>
@@ -322,7 +322,7 @@ export function PaymentQrisSection({ order }: PaymentQrisSectionProps) {
       </section>
 
       {/* Batalkan */}
-      <div className="px-1 text-center">
+      <div className="px-1 text-center lg:col-span-2">
         {confirmCancel ? (
           <div className="inline-flex flex-wrap items-center justify-center gap-2">
             <span className="text-sm font-semibold text-red-700">
@@ -355,8 +355,8 @@ export function PaymentQrisSection({ order }: PaymentQrisSectionProps) {
       </div>
 
       {/* Bar aksi menempel di bawah */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
-        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3 sm:px-6">
+      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[480px] border-t border-stone-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:max-w-7xl lg:rounded-t-2xl lg:border-x">
+        <div className="mx-auto flex items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <div className="min-w-0">
             <p className="text-xs text-stone-500">Total</p>
             <p className="font-mono text-lg font-bold text-stone-900 tabular-nums">

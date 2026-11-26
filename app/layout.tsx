@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { AuthProvider } from '@/components/AuthProvider';
+import { CustomerOrderNotifier } from '@/components/CustomerOrderNotifier';
 import { CustomerBottomNav } from '@/components/CustomerBottomNav';
 import './globals.css';
 
@@ -51,7 +52,10 @@ export default function RootLayout({
         suppressHydrationWarning
         className="min-h-screen bg-[#F7F6F5] font-sans text-stone-900 antialiased selection:bg-orange-100 selection:text-orange-900"
       >
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <CustomerBottomNav />
+        </AuthProvider>
       </body>
     </html>
   );

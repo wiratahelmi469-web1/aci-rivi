@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, XCircle } from 'lucide-react';
 import { useCustomerAuth } from '@/components/AuthProvider';
+import { CustomerHeader } from '@/components/CustomerHeader';
 import { OrderStatusTracker } from '@/components/OrderStatusTracker';
 import { PaymentQrisSection } from '@/components/PaymentQrisSection';
 import { ErrorRetryCard, OrderDetailSkeleton } from '@/components/Skeletons';
@@ -68,8 +69,9 @@ function PesananDetailContent() {
 
   return (
     <div className="min-h-screen bg-[#F7F6F5] pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
-      <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-2xl items-center gap-1 px-2 sm:px-4">
+      <CustomerHeader desktopOnly />
+      <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur-sm lg:hidden">
+        <div className="mx-auto flex h-14 max-w-[480px] items-center gap-1 px-2 sm:px-4">
           <Link
             href="/"
             aria-label="Kembali ke beranda"
@@ -81,13 +83,23 @@ function PesananDetailContent() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 py-5 sm:px-6 sm:py-6">
+      <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-10">
+        <div className="mb-6 hidden items-center justify-between lg:flex">
+          <h1 className="text-3xl font-bold text-stone-900">{title}</h1>
+          <Link
+            href="/"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 text-sm font-semibold text-stone-700 transition-colors hover:border-orange-300 hover:text-red-600"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            <span>Beranda</span>
+          </Link>
+        </div>
         {!authReady || !user || order === undefined ? (
           <OrderDetailSkeleton />
         ) : loadError ? (
           <ErrorRetryCard message="Gagal memuat" onRetry={syncOrder} />
         ) : order === null || isUnauthorizedOrder ? (
-          <div className="rounded-3xl border border-stone-200 bg-white p-8 text-center">
+          <div className="rounded-3xl border border-stone-200 bg-white p-8 text-center lg:mx-auto lg:max-w-2xl lg:p-12">
             <XCircle className="mx-auto h-12 w-12 text-stone-400" aria-hidden="true" />
             <h2 className="mt-3 text-xl font-bold text-stone-900">
               Pesanan tidak ditemukan
@@ -108,7 +120,7 @@ function PesananDetailContent() {
           order.statusBayar === 'Ditolak' ? (
           <PaymentQrisSection order={order} />
         ) : order.statusBayar === 'Menunggu Konfirmasi' ? (
-          <div className="rounded-3xl border border-orange-200 bg-white p-6 text-center sm:p-8">
+          <div className="rounded-3xl border border-orange-200 bg-white p-6 text-center sm:p-8 lg:mx-auto lg:max-w-3xl lg:p-12">
             <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3.5 py-1.5 text-sm font-bold text-orange-800">
               <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-60 motion-reduce:animate-none" />
@@ -156,7 +168,7 @@ function PesananDetailContent() {
             </Link>
           </div>
         ) : order.statusBayar === 'Kedaluwarsa' ? (
-          <div className="rounded-3xl border border-red-200 bg-white p-6 text-center sm:p-8">
+          <div className="rounded-3xl border border-red-200 bg-white p-6 text-center sm:p-8 lg:mx-auto lg:max-w-3xl lg:p-12">
             <XCircle className="mx-auto h-12 w-12 text-red-500" aria-hidden="true" />
             <p className="mt-3 font-mono text-3xl font-bold text-stone-400 tabular-nums">
               {order.nomorPesanan}
@@ -174,15 +186,16 @@ function PesananDetailContent() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6 lg:space-y-0">
             <OrderStatusTracker
+              className="lg:col-span-2"
               order={order}
               justPaid={
                 justPaidBanner ||
                 (order.sumber === 'Online' && order.statusPesanan === 'Baru')
               }
             />
-            <div className="text-center">
+            <div className="text-center lg:col-span-2">
               <Link
                 href="/"
                 className="inline-flex h-12 items-center justify-center rounded-xl border border-stone-300 bg-white px-6 text-sm font-bold text-stone-700 transition-colors hover:bg-stone-50 active:bg-stone-100"
@@ -202,7 +215,7 @@ export default function PesananStatusPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-[#F7F6F5]">
-          <div className="mx-auto max-w-2xl px-4 py-10">
+          <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
             <OrderDetailSkeleton />
           </div>
         </div>

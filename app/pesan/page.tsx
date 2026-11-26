@@ -175,7 +175,7 @@ export default function PesanPage() {
     return (
       <div className="min-h-screen bg-[#F7F6F5]">
         <CustomerHeader />
-        <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+        <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <ToppingGridSkeleton count={8} />
         </main>
       </div>
@@ -183,11 +183,11 @@ export default function PesanPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F6F5] pb-24">
+    <div className="min-h-screen bg-[#F7F6F5] pb-[calc(6rem+env(safe-area-inset-bottom))]">
       <CustomerHeader />
 
       <div className="border-b border-stone-200 bg-white">
-        <div className="mx-auto flex h-12 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
+        <div className="mx-auto flex h-12 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           {step === 'topping' ? (
             <Link
               href="/"
@@ -217,7 +217,7 @@ export default function PesanPage() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+      <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
         {step === 'topping' && (
           <div className="space-y-5">
             <div>
@@ -257,8 +257,8 @@ export default function PesanPage() {
         )}
 
         {step === 'ringkasan' && (
-          <form onSubmit={handleLanjutBayar} className="mx-auto max-w-2xl space-y-5">
-            <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6">
+          <form onSubmit={handleLanjutBayar} className="w-full space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6 lg:space-y-0">
+            <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6 lg:col-start-1 lg:row-start-1 lg:p-7">
               <div className="flex items-center justify-between gap-2 border-b border-stone-100 pb-3">
                 <h2 className="text-base font-bold text-stone-900">
                   Topping Terpilih ({selectedToppings.length})
@@ -351,7 +351,7 @@ export default function PesanPage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6">
+            <section className="rounded-3xl border border-stone-200 bg-white p-5 sm:p-6 lg:col-start-2 lg:row-start-1 lg:p-7">
               <h2 className="text-base font-bold text-stone-900">
                 Data Pengambilan
               </h2>
@@ -448,7 +448,7 @@ export default function PesanPage() {
                 fieldErrors.waktuAmbil
                   ? 'border-red-500 ring-1 ring-red-500'
                   : 'border-stone-200'
-              }`}
+              } lg:col-start-1 lg:row-start-2 lg:p-7`}
             >
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-base font-bold text-stone-900">
@@ -504,7 +504,7 @@ export default function PesanPage() {
               )}
             </section>
 
-            <div className="flex flex-col-reverse gap-3 sm:flex-row">
+            <div className="flex flex-col-reverse gap-3 lg:col-span-2 lg:flex-row lg:justify-end">
               <Link
                 href="/"
                 className="flex h-14 flex-1 items-center justify-center rounded-2xl border border-stone-300 bg-white px-6 text-base font-bold text-stone-700 hover:bg-stone-50"
@@ -524,8 +524,8 @@ export default function PesanPage() {
       </main>
 
       {step === 'topping' && (
-        <div className="fixed right-0 bottom-0 left-0 z-40 border-t border-stone-200 bg-white/95 backdrop-blur-md">
-          <div className="mx-auto flex h-[72px] max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[480px] border-t border-stone-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:max-w-7xl lg:rounded-t-2xl lg:border-x">
+          <div className="mx-auto flex min-h-[72px] items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:px-8">
             <div>
               <p className="font-mono text-base font-bold text-stone-900 tabular-nums">
                 {selectedToppings.length} topping · {formatRupiah(totalHarga)}

@@ -11,6 +11,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2, Lock, LogOut } from 'lucide-react';
 import { SplashScreen } from '@/components/SplashScreen';
+import { StaffChatWidget } from '@/components/staff/StaffChatWidget';
+import { StaffNotifier, StaffSoundToggle } from '@/components/staff/StaffNotifier';
 
 interface StaffAuthContextValue {
   authenticated: boolean;
@@ -322,6 +324,7 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
 
         <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">{children}</main>
       </div>
+      <StaffChatWidget />
     </StaffAuthContext.Provider>
   );
 }

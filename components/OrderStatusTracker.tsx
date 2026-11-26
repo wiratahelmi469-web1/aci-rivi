@@ -7,6 +7,7 @@ import type { Order, StatusPesanan } from '@/lib/types';
 interface OrderStatusTrackerProps {
   order: Order;
   justPaid?: boolean;
+  className?: string;
 }
 
 const TAHAP_LIST: Array<{
@@ -44,6 +45,7 @@ const TAHAP_LIST: Array<{
 export function OrderStatusTracker({
   order,
   justPaid = false,
+  className,
 }: OrderStatusTrackerProps) {
   const found = TAHAP_LIST.findIndex((t) => t.status === order.statusPesanan);
   const activeIndex = found === -1 ? 0 : found;
@@ -58,9 +60,9 @@ export function OrderStatusTracker({
       : 'border border-stone-200 bg-white text-stone-900';
 
   return (
-    <div className="space-y-4">
+    <div className={`grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6 ${className ?? ''}`}>
       {justPaid && !isReady && !isDone && (
-        <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
+        <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 lg:col-span-2">
           <CheckCircle2
             className="h-6 w-6 shrink-0 text-emerald-600"
             aria-hidden="true"
@@ -77,7 +79,7 @@ export function OrderStatusTracker({
       {/* Kartu utama: status + nomor pesanan */}
       <section
         aria-live="polite"
-        className={`rounded-3xl p-6 text-center ${heroClass}`}
+        className={`rounded-3xl p-5 text-center sm:p-6 lg:col-span-2 lg:p-8 ${heroClass}`}
       >
         <p
           className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-bold ${

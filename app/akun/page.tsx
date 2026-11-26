@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, Loader2, LogOut } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, LogOut, UserRound } from 'lucide-react';
 import { useCustomerAuth } from '@/components/AuthProvider';
 import { CustomerHeader } from '@/components/CustomerHeader';
 import { ErrorRetryCard, ProfileSkeleton } from '@/components/Skeletons';
@@ -88,7 +88,7 @@ export default function AkunSayaPage() {
     <div className="min-h-screen bg-[#F7F6F5]">
       <CustomerHeader />
 
-      <main className="mx-auto max-w-lg px-4 py-6 sm:px-6">
+      <main className="mx-auto w-full max-w-7xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8 lg:py-10 lg:pb-10">
         <div className="mb-4">
           <Link
             href="/"
@@ -104,14 +104,30 @@ export default function AkunSayaPage() {
         ) : profileError ? (
           <ErrorRetryCard message="Gagal memuat" onRetry={refreshProfile} />
         ) : (
-          <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-xs sm:p-8">
-            <h1 className="text-2xl font-bold text-stone-900">Akun Saya</h1>
-            <p className="mt-1 text-sm text-stone-600">
-              Perbarui nama dan nomor WhatsApp untuk pemesanan berikutnya.
-            </p>
+          <div className="space-y-4 lg:grid lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-start lg:gap-8 lg:space-y-0">
+            <section className="hidden rounded-3xl border border-stone-200 bg-white p-6 shadow-xs lg:col-start-1 lg:row-start-1 lg:block">
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-red-600">
+                <UserRound className="h-7 w-7" aria-hidden="true" />
+              </span>
+              <h2 className="mt-4 text-xl font-bold text-stone-900">
+                {profile?.nama || user.displayName || 'Akun Aci Rivi'}
+              </h2>
+              <p className="mt-1 break-all text-sm text-stone-600">{user.email}</p>
+              {profile?.nomorWhatsApp && (
+                <p className="mt-3 text-sm font-medium text-stone-700">
+                  {profile.nomorWhatsApp}
+                </p>
+              )}
+            </section>
 
-            <form onSubmit={handleSave} className="mt-6 space-y-4">
-              <div>
+            <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-xs lg:col-start-2 lg:row-start-1 lg:p-7">
+              <h1 className="text-2xl font-bold text-stone-900">Akun Saya</h1>
+              <p className="mt-1 text-sm text-stone-600">
+                Perbarui nama dan nomor WhatsApp untuk pemesanan berikutnya.
+              </p>
+
+              <form onSubmit={handleSave} className="mt-5 space-y-4">
+                <div>
                 <label
                   htmlFor="akun-email"
                   className="block text-sm font-semibold text-stone-800"
@@ -125,9 +141,9 @@ export default function AkunSayaPage() {
                   disabled
                   className="mt-1.5 h-12 w-full rounded-xl border border-stone-200 bg-stone-100 px-4 text-base text-stone-500"
                 />
-              </div>
+                </div>
 
-              <div>
+                <div>
                 <label
                   htmlFor="akun-nama"
                   className="block text-sm font-semibold text-stone-800"
@@ -156,9 +172,9 @@ export default function AkunSayaPage() {
                     {fieldErrors.nama}
                   </p>
                 )}
-              </div>
+                </div>
 
-              <div>
+                <div>
                 <label
                   htmlFor="akun-wa"
                   className="block text-sm font-semibold text-stone-800"
@@ -192,43 +208,44 @@ export default function AkunSayaPage() {
                     {fieldErrors.nomorWhatsApp}
                   </p>
                 )}
-              </div>
-
-              {saveError && (
-                <div
-                  role="alert"
-                  className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-semibold text-red-700"
-                >
-                  {saveError}
                 </div>
-              )}
 
-              {savedNotice && (
-                <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm font-semibold text-emerald-800">
-                  <CheckCircle2
-                    className="h-4 w-4 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <span>Profil berhasil diperbarui</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-6 text-base font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSaving && (
-                  <Loader2
-                    className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                    aria-hidden="true"
-                  />
+                {saveError && (
+                  <div
+                    role="alert"
+                    className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-semibold text-red-700"
+                  >
+                    {saveError}
+                  </div>
                 )}
-                <span>{isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
-              </button>
-            </form>
 
-            <div className="mt-6 border-t border-stone-100 pt-5">
+                {savedNotice && (
+                  <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm font-semibold text-emerald-800">
+                    <CheckCircle2
+                      className="h-4 w-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <span>Profil berhasil diperbarui</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-6 text-base font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSaving && (
+                    <Loader2
+                      className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span>{isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
+                </button>
+              </form>
+            </section>
+
+            <section className="rounded-3xl border border-stone-200 bg-white p-4 shadow-xs lg:col-start-1 lg:row-start-2">
               <button
                 type="button"
                 onClick={handleLogout}
@@ -237,7 +254,7 @@ export default function AkunSayaPage() {
                 <LogOut className="h-4 w-4" aria-hidden="true" />
                 <span>Keluar</span>
               </button>
-            </div>
+            </section>
           </div>
         )}
       </main>

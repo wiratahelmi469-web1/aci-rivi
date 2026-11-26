@@ -34,7 +34,7 @@ export function ToppingGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
       {toppings.map((topping) => {
         const isHabis = !topping.tersedia || topping.stok <= 0;
         const isSelected = !isHabis && selectedIds.includes(topping.id);
@@ -58,7 +58,7 @@ export function ToppingGrid({
                 ? 'cursor-not-allowed border-stone-200 bg-stone-100/90 opacity-75'
                 : isSelected
                   ? 'border-red-500 bg-orange-50/70 shadow-xs ring-1 ring-red-500'
-                  : 'border-stone-200 bg-white hover:border-orange-300 active:scale-[0.98]'
+                  : 'border-stone-200 bg-white hover:border-orange-300 active:scale-[0.98] lg:hover:-translate-y-1 lg:hover:shadow-md'
             }`}
           >
             <div className="w-full">

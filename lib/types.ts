@@ -50,6 +50,15 @@ export interface Order {
   alasanPenolakan?: string; // Alasan jika pegawai menolak bukti bayar
 }
 
+export type ChatSenderType = 'customer' | 'staff';
+
+export interface ChatMessage {
+  id: string;
+  senderType: ChatSenderType;
+  body: string;
+  createdAt: string;
+}
+
 export interface StoreSettings {
   qrisImage?: string; // Data URL gambar QRIS toko
   qrisUpdatedAt?: string;

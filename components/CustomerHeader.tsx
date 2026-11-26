@@ -2,12 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ChevronDown, LogOut, ReceiptText, User } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  ChevronDown,
+  Home,
+  LogOut,
+  ReceiptText,
+  UtensilsCrossed,
+  User,
+} from "lucide-react";
 import { useCustomerAuth } from "@/components/AuthProvider";
+import { CustomerChatWidget } from "@/components/CustomerChatWidget";
 import { getFirstName } from "@/lib/validation";
 
-export function CustomerHeader() {
+export function CustomerHeader({ desktopOnly = false }: { desktopOnly?: boolean }) {
+  const pathname = usePathname();
   const router = useRouter();
   const { user, profile, authReady, logoutCustomer } = useCustomerAuth();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -38,10 +47,20 @@ export function CustomerHeader() {
   };
 
   const firstName = getFirstName(profile?.nama || user?.displayName);
+  const desktopLink = (active: boolean) =>
+    `inline-flex h-20 items-center gap-2 border-b-2 px-2 text-sm font-semibold transition-colors duration-200 ${
+      active
+        ? "border-red-600 text-red-600"
+        : "border-transparent text-stone-600 hover:text-red-600"
+    }`;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 backdrop-blur-sm">
-      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
+    <header
+      className={`sticky top-0 z-30 border-b border-stone-200 bg-white/95 backdrop-blur-sm ${
+        desktopOnly ? 'hidden lg:block' : ''
+      }`}
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:h-20 lg:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -55,6 +74,36 @@ export function CustomerHeader() {
             Aci Rivi
           </span>
         </Link>
+
+        <nav
+          aria-label="Navigasi utama"
+          className="hidden h-full flex-1 items-center justify-center gap-2 lg:flex xl:gap-4"
+        >
+          <Link
+            href="/"
+            className={desktopLink(pathname === "/")}
+            aria-current={pathname === "/" ? "page" : undefined}
+          >
+            <Home className="h-4 w-4" aria-hidden="true" />
+            <span>Beranda</span>
+          </Link>
+          <Link
+            href="/pesan"
+            className={desktopLink(pathname === "/pesan")}
+            aria-current={pathname === "/pesan" ? "page" : undefined}
+          >
+            <UtensilsCrossed className="h-4 w-4" aria-hidden="true" />
+            <span>Menu</span>
+          </Link>
+          <Link
+            href="/pesanan"
+            className={desktopLink(pathname.startsWith("/pesanan"))}
+          >
+            <ReceiptText className="h-4 w-4" aria-hidden="true" />
+            <span>Pesanan</span>
+          </Link>
+          <CustomerChatWidget variant="desktop" />
+        </nav>
 
         {!authReady ? (
           <div
@@ -100,7 +149,7 @@ export function CustomerHeader() {
                 className="absolute right-0 mt-2 w-48 overflow-hidden rounded-2xl border border-stone-200 bg-white py-1.5 shadow-lg"
               >
                 <Link
-                  href="/#pesanan-saya"
+                  href="/pesanan"
                   role="menuitem"
                   onClick={() => setMenuOpen(false)}
                   className="flex min-h-[44px] items-center gap-2.5 px-4 py-2 text-sm font-medium text-stone-800 hover:bg-orange-50 hover:text-red-700"
