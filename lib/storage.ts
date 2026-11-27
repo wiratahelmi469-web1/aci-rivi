@@ -58,12 +58,13 @@ export function getPendingPaymentOrders(): Order[] {
 }
 
 export function normalizeOrderNumberInput(raw: string): string {
-  const cleaned = raw.trim().replace(/^#/, '');
+  const cleaned = raw.trim().replace(/^#/, '').toUpperCase();
   if (!cleaned) return '';
-  if (/^\d+$/.test(cleaned)) {
-    return `#${cleaned.padStart(3, '0')}`;
+  const numeric = /^ACI-(\d+)$/.exec(cleaned)?.[1] ?? cleaned;
+  if (/^\d+$/.test(numeric)) {
+    return `ACI-${numeric.padStart(4, '0')}`;
   }
-  return `#${cleaned.toUpperCase()}`;
+  return cleaned;
 }
 
 export function findOrderByQuery(query: string): Order | undefined {

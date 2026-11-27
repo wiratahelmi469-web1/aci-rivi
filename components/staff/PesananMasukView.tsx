@@ -216,11 +216,11 @@ export function PesananMasukView() {
 
                   <div className="mt-4 border-t border-stone-100 pt-3">
                     <p className="text-xs font-semibold text-stone-500">
-                      Topping ({order.daftarTopping.length})
+                      Topping ({order.daftarTopping.reduce((sum, item) => sum + (item.quantity ?? 1), 0)})
                     </p>
                     <p className="mt-1 text-sm font-medium leading-relaxed text-stone-800">
                       {order.daftarTopping
-                        .map((t) => `${t.emoji ? `${t.emoji} ` : ''}${t.nama}`)
+                        .map((t) => `${t.emoji ? `${t.emoji} ` : ''}${t.nama} x${t.quantity ?? 1}`)
                         .join(' · ')}
                     </p>
                   </div>

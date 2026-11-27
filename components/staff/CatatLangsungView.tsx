@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { ErrorRetryCard, ToppingGridSkeleton } from '@/components/Skeletons';
 import { ToppingGrid } from '@/components/ToppingGrid';
+import { BATAS_JUMLAH_TOPPING } from '@/lib/constants';
 import {
   createPrasmananOrder,
   getToppings,
@@ -24,7 +25,7 @@ export function CatatLangsungView({
   const [toppings, setToppings] = useState<Topping[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [nama, setNama] = useState('');
   const [catatan, setCatatan] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -35,11 +36,14 @@ export function CatatLangsungView({
     try {
       const latest = getToppings();
       setToppings(latest);
-      setSelectedIds((prev) =>
-        prev.filter((id) => {
-          const item = latest.find((t) => t.id === id);
-          return item && item.tersedia && item.stok > 0;
-        })
+      setQuantities((prev) =>
+        Object.fromEntries(
+          Object.entries(prev).flatMap(([id, quantity]) => {
+            const item = latest.find((t) => t.id === id);
+            if (!item || !item.tersedia || item.stok <= 0) return [];
+            return [[id, Math.min(quantity, item.stok, BATAS_JUMLAH_TOPPING)]];
+          })
+        )
       );
       setLoadError(false);
     } catch {
@@ -60,24 +64,26 @@ export function CatatLangsungView({
 
   const selectedToppings = useMemo(
     () =>
-      selectedIds
+      Object.keys(quantities)
+        .filter((id) => quantities[id] > 0)
         .map((id) => toppings.find((t) => t.id === id))
         .filter((t): t is Topping => Boolean(t)),
-    [selectedIds, toppings]
+    [quantities, toppings]
   );
 
   const totalHarga = useMemo(
-    () => selectedToppings.reduce((sum, t) => sum + t.harga, 0),
-    [selectedToppings]
+    () => selectedToppings.reduce((sum, t) => sum + t.harga * quantities[t.id], 0),
+    [selectedToppings, quantities]
   );
 
-  const handleToggle = (topping: Topping) => {
+  const handleQuantityChange = (topping: Topping, quantity: number) => {
     setErrorMsg('');
-    setSelectedIds((prev) =>
-      prev.includes(topping.id)
-        ? prev.filter((id) => id !== topping.id)
-        : [...prev, topping.id]
-    );
+    setQuantities((prev) => {
+      const next = { ...prev };
+      if (quantity > 0) next[topping.id] = quantity;
+      else delete next[topping.id];
+      return next;
+    });
   };
 
   const handleSimpan = async (e: React.FormEvent) => {
@@ -108,6 +114,7 @@ export function CatatLangsungView({
         nama: t.nama,
         emoji: t.emoji,
         harga: t.harga,
+        quantity: quantities[t.id],
       })),
     });
 
@@ -121,7 +128,7 @@ export function CatatLangsungView({
 
   const resetForm = () => {
     setSavedOrder(null);
-    setSelectedIds([]);
+    setQuantities({});
     setNama('');
     setCatatan('');
     setErrorMsg('');
@@ -235,7 +242,7 @@ export function CatatLangsungView({
             Pilih Topping Prasmanan
           </h2>
           <span className="font-mono text-sm font-semibold text-red-600 tabular-nums">
-            {selectedToppings.length} topping · {formatRupiah(totalHarga)}
+            {selectedToppings.reduce((sum, item) => sum + quantities[item.id], 0)} topping · {formatRupiah(totalHarga)}
           </span>
         </div>
 
@@ -246,8 +253,8 @@ export function CatatLangsungView({
         ) : (
           <ToppingGrid
             toppings={toppings}
-            selectedIds={selectedIds}
-            onToggle={handleToggle}
+            quantities={quantities}
+            onQuantityChange={handleQuantityChange}
             onUnavailableTap={() => setErrorMsg('Topping ini sudah habis')}
           />
         )}
@@ -267,7 +274,7 @@ export function CatatLangsungView({
         <div>
           <p className="text-xs text-stone-500">Total Tagihan Kasir</p>
           <p className="font-mono text-xl font-bold text-stone-900 tabular-nums">
-            {selectedToppings.length} topping · {formatRupiah(totalHarga)}
+            {selectedToppings.reduce((sum, item) => sum + quantities[item.id], 0)} topping · {formatRupiah(totalHarga)}
           </p>
         </div>
 

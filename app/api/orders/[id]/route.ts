@@ -97,7 +97,7 @@ export async function PATCH(
         const habis = row.daftarTopping
           .filter((t) => {
             const s = byId.get(t.id);
-            return !s || !s.tersedia || s.stok < 1;
+            return !s || !s.tersedia || s.stok < (t.quantity ?? 1);
           })
           .map((t) => t.nama);
         if (habis.length > 0) {
@@ -118,12 +118,17 @@ export async function PATCH(
         if (claimed.length === 0) return done();
 
         const now = new Date();
-        const decs = ids.map((tid) =>
-          db
+        const decs = ids.map((tid) => {
+          const quantity =
+            row.daftarTopping.find((t) => t.id === tid)?.quantity ?? 1;
+          return db
             .update(toppings)
-            .set({ stok: sql`greatest(${toppings.stok} - 1, 0)`, updatedAt: now })
-            .where(eq(toppings.id, tid))
-        );
+            .set({
+              stok: sql`greatest(${toppings.stok} - ${quantity}, 0)`,
+              updatedAt: now,
+            })
+            .where(eq(toppings.id, tid));
+        });
         await db.batch(decs as unknown as [(typeof decs)[0]]);
         return done();
       }

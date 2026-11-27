@@ -137,7 +137,7 @@ export async function createOnlineOrder(input: {
   nomorWhatsApp: string;
   catatan: string;
   waktuAmbil: string;
-  toppingIds: string[];
+  toppingItems: Array<{ id: string; quantity: number }>;
 }): Promise<CreateOrderResult> {
   const r = await call('/api/orders', 'POST', { sumber: 'Online', ...input });
   if (!r.ok) return { ok: false, error: r.error };
@@ -153,7 +153,10 @@ export async function createPrasmananOrder(input: {
     sumber: 'Prasmanan',
     nama: input.nama,
     catatan: input.catatan,
-    toppingIds: input.daftarTopping.map((t) => t.id),
+    toppingItems: input.daftarTopping.map((t) => ({
+      id: t.id,
+      quantity: t.quantity ?? 1,
+    })),
   });
   void refreshToppings().catch(() => {}); // stok berubah di server
   if (!r.ok) return { ok: false, error: r.error };

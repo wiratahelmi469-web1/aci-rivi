@@ -4,7 +4,8 @@ import type { Topping } from './types';
 export const JAM_BUKA = 10; // 10:00 WIB
 export const JAM_TUTUP = 21; // 21:00 WIB
 export const INTERVAL_MENIT = 15; // Pilihan waktu ambil per 15 menit
-export const MINIMAL_JEDA_MENIT = 20; // Minimal 20 menit dari waktu pemesanan
+export const MINIMAL_JEDA_MENIT = 15; // Minimal jeda persiapan dari waktu pemesanan
+export const BATAS_JUMLAH_TOPPING = 20;
 export const BATAS_BAYAR_MENIT = 15; // Batas waktu pembayaran QRIS (15 menit)
 
 // Batas stok menipis untuk label "Sisa X"

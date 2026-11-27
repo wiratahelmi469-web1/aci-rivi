@@ -77,7 +77,10 @@ function ActiveOrderCard({ order }: { order: Order }) {
             {order.nomorPesanan}
           </p>
           <p className="mt-1 text-sm text-stone-600">
-            Ambil pukul {order.waktuAmbil} · {order.daftarTopping.length} topping
+            Ambil pukul {order.waktuAmbil} · {order.daftarTopping.reduce((sum, item) => sum + (item.quantity ?? 1), 0)} topping
+          </p>
+          <p className="mt-1 text-xs text-stone-500">
+            {order.daftarTopping.map((item) => `${item.nama} x${item.quantity ?? 1}`).join(' · ')}
           </p>
         </div>
         <StatusPill order={order} />
@@ -127,7 +130,7 @@ function HistoryOrderCard({ order }: { order: Order }) {
             {order.nomorPesanan}
           </span>
           <p className="mt-1 text-xs text-stone-500">
-            {order.daftarTopping.length} topping
+            {order.daftarTopping.map((item) => `${item.nama} x${item.quantity ?? 1}`).join(' · ')}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">

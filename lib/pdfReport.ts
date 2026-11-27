@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatRupiah, formatTanggalJamWib, getPeriodInfoWib } from './time';
-import type { Order, PeriodeLaporan } from './types';
+import { formatRupiah, formatTanggalJamWib, getWibParts } from './time';
+import type { Order } from './types';
 
 export interface TopToppingSummary {
   nama: string;
@@ -20,13 +20,13 @@ export function hitungStatistikLaporan(orders: Order[]) {
     for (const t of order.daftarTopping) {
       const prev = toppingMap.get(t.nama);
       if (prev) {
-        prev.jumlah += 1;
-        prev.totalNilai += t.harga;
+        prev.jumlah += t.quantity ?? 1;
+        prev.totalNilai += t.harga * (t.quantity ?? 1);
       } else {
         toppingMap.set(t.nama, {
           nama: t.nama,
-          jumlah: 1,
-          totalNilai: t.harga,
+          jumlah: t.quantity ?? 1,
+          totalNilai: t.harga * (t.quantity ?? 1),
         });
       }
     }
@@ -45,11 +45,14 @@ export function hitungStatistikLaporan(orders: Order[]) {
   };
 }
 
-export function unduhLaporanPdf(orders: Order[], periode: PeriodeLaporan): void {
+export function unduhLaporanPdf(orders: Order[], start: Date, end: Date): void {
   if (orders.length === 0) return;
 
   const now = new Date();
-  const periodInfo = getPeriodInfoWib(periode, now);
+  const startParts = getWibParts(start);
+  const endParts = getWibParts(end);
+  const periodLabel = `${formatTanggalJamWib(start)} – ${formatTanggalJamWib(end)}`;
+  const fileName = `Laporan-AciRivi-${startParts.dateKey}-${endParts.dateKey}.pdf`;
   const stats = hitungStatistikLaporan(orders);
   const sortedOrders = [...orders].sort(
     (a, b) => Date.parse(b.waktuDibuat) - Date.parse(a.waktuDibuat)
@@ -79,7 +82,7 @@ export function unduhLaporanPdf(orders: Order[], periode: PeriodeLaporan): void 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
   doc.setTextColor(...darkText);
-  doc.text(periodInfo.label, 14, 25);
+  doc.text(periodLabel, 14, 25);
 
   // 2. Tanggal & jam cetak
   doc.setFontSize(9.5);
@@ -181,7 +184,7 @@ export function unduhLaporanPdf(orders: Order[], periode: PeriodeLaporan): void 
       formatTanggalJamWib(order.waktuDibuat),
       order.nama,
       order.sumber,
-      order.daftarTopping.map((t) => t.nama).join(', '),
+      order.daftarTopping.map((t) => `${t.nama} x${t.quantity ?? 1}`).join(', '),
       formatRupiah(order.totalHarga),
     ]),
     foot: [
@@ -240,5 +243,5 @@ export function unduhLaporanPdf(orders: Order[], periode: PeriodeLaporan): void 
     );
   }
 
-  doc.save(periodInfo.fileName);
+  doc.save(fileName);
 }

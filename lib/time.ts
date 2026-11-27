@@ -4,7 +4,7 @@ import {
   JAM_TUTUP,
   MINIMAL_JEDA_MENIT,
 } from './constants';
-import type { Order, PeriodeLaporan } from './types';
+import type { Order } from './types';
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 
@@ -83,9 +83,34 @@ export function formatJamMenitWib(input: Date | string | number): string {
   return `${pad2(p.hour)}:${pad2(p.minute)} WIB`;
 }
 
+export function getStoreStatusWib(now: Date = new Date()) {
+  const { hour, minute } = getWibParts(now);
+  const minutesToday = hour * 60 + minute;
+  const open = minutesToday >= JAM_BUKA * 60 && minutesToday < JAM_TUTUP * 60;
+  return {
+    open,
+    text: open
+      ? `Buka sampai ${JAM_TUTUP}:00 WIB`
+      : minutesToday < JAM_BUKA * 60
+        ? `Buka pukul ${JAM_BUKA}:00 WIB`
+        : `Tutup, buka lagi besok pukul ${JAM_BUKA}:00 WIB`,
+  };
+}
+
+export function formatDateTimeLocalWib(input: Date = new Date()): string {
+  const p = getWibParts(input);
+  return `${p.dateKey}T${pad2(p.hour)}:${pad2(p.minute)}`;
+}
+
+export function parseDateTimeLocalWib(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}:00+07:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 /**
  * Menghasilkan daftar pilihan jam pengambilan per 15 menit (10:00–21:00 WIB)
- * minimal 20 menit dari waktu sekarang. Slot yang lewat tidak ditampilkan.
+ * minimal sesuai jeda persiapan dari waktu sekarang. Slot yang lewat tidak ditampilkan.
  */
 export function generatePickupSlots(now: Date = new Date()): string[] {
   const wibNow = getWibParts(now);
@@ -117,92 +142,4 @@ export function getPickupSortMinutes(order: Order): number {
   }
   const created = getWibParts(order.waktuDibuat);
   return created.hour * 60 + created.minute;
-}
-
-export interface PeriodInfo {
-  periode: PeriodeLaporan;
-  label: string;
-  fileName: string;
-  startDateKey: string;
-  endDateKey: string;
-}
-
-function fromUtcYmd(year: number, monthIndexZero: number, day: number) {
-  const d = new Date(Date.UTC(year, monthIndexZero, day));
-  const y = d.getUTCFullYear();
-  const m = d.getUTCMonth() + 1;
-  const dd = d.getUTCDate();
-  return {
-    year: y,
-    month: m,
-    day: dd,
-    dateKey: `${y}-${pad2(m)}-${pad2(dd)}`,
-    monthName: NAMA_BULAN_ID[m - 1],
-  };
-}
-
-export function getPeriodInfoWib(
-  periode: PeriodeLaporan,
-  now: Date = new Date()
-): PeriodInfo {
-  const wib = getWibParts(now);
-
-  if (periode === 'hari') {
-    const label = `Hari Ini, ${wib.day} ${NAMA_BULAN_ID[wib.month - 1]} ${wib.year}`;
-    return {
-      periode,
-      label,
-      fileName: `Laporan-AciRivi-Hari-Ini-${wib.dateKey}.pdf`,
-      startDateKey: wib.dateKey,
-      endDateKey: wib.dateKey,
-    };
-  }
-
-  if (periode === 'minggu') {
-    const diffToMonday = wib.dayOfWeek === 0 ? 6 : wib.dayOfWeek - 1;
-    const monday = fromUtcYmd(wib.year, wib.month - 1, wib.day - diffToMonday);
-    const sunday = fromUtcYmd(
-      wib.year,
-      wib.month - 1,
-      wib.day - diffToMonday + 6
-    );
-
-    let rangeText = '';
-    if (monday.year === sunday.year && monday.month === sunday.month) {
-      rangeText = `${monday.day}–${sunday.day} ${sunday.monthName} ${sunday.year}`;
-    } else if (monday.year === sunday.year) {
-      rangeText = `${monday.day} ${monday.monthName} – ${sunday.day} ${sunday.monthName} ${sunday.year}`;
-    } else {
-      rangeText = `${monday.day} ${monday.monthName} ${monday.year} – ${sunday.day} ${sunday.monthName} ${sunday.year}`;
-    }
-
-    return {
-      periode,
-      label: `Minggu Ini, ${rangeText}`,
-      fileName: `Laporan-AciRivi-Minggu-Ini-${monday.dateKey}.pdf`,
-      startDateKey: monday.dateKey,
-      endDateKey: sunday.dateKey,
-    };
-  }
-
-  // Bulan ini
-  const lastDay = fromUtcYmd(wib.year, wib.month, 0);
-  const firstDay = fromUtcYmd(wib.year, wib.month - 1, 1);
-  return {
-    periode,
-    label: `Bulan Ini, ${NAMA_BULAN_ID[wib.month - 1]} ${wib.year}`,
-    fileName: `Laporan-AciRivi-Bulan-Ini-${wib.monthKey}.pdf`,
-    startDateKey: firstDay.dateKey,
-    endDateKey: lastDay.dateKey,
-  };
-}
-
-export function isOrderInPeriodWib(
-  order: Order,
-  periode: PeriodeLaporan,
-  now: Date = new Date()
-): boolean {
-  const info = getPeriodInfoWib(periode, now);
-  const orderDateKey = getWibParts(order.waktuDibuat).dateKey;
-  return orderDateKey >= info.startDateKey && orderDateKey <= info.endDateKey;
 }

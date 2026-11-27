@@ -1,4 +1,4 @@
-import { bigint, boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import type { ChatSenderType, OrderTopping } from "@/lib/types";
 
 export const users = pgTable("users", {
@@ -65,7 +65,7 @@ export const orders = pgTable(
     id: text("id").primaryKey(),
     uid: text("uid"),
     tanggal: text("tanggal").notNull(),
-    nomor: integer("nomor").notNull(),
+    nomor: serial("nomor").notNull(),
     nama: text("nama").notNull(),
     nomorWhatsApp: text("nomor_whatsapp").notNull().default(""),
     sumber: text("sumber").notNull(),
@@ -82,7 +82,7 @@ export const orders = pgTable(
     waktuUnggahBukti: timestamp("waktu_unggah_bukti", { withTimezone: true }),
     alasanPenolakan: text("alasan_penolakan"),
   },
-  (t) => [uniqueIndex("orders_tanggal_nomor_uq").on(t.tanggal, t.nomor)]
+  (t) => [uniqueIndex("orders_nomor_uq").on(t.nomor)]
 );
 
 export const storeSettings = pgTable("store_settings", {

@@ -231,10 +231,10 @@ export function OrderStatusTracker({
             >
               <span className="font-medium text-stone-800">
                 {item.emoji ? `${item.emoji} ` : ''}
-                {item.nama}
+                {item.nama} x{item.quantity ?? 1}
               </span>
               <span className="font-mono font-medium text-stone-700 tabular-nums">
-                {formatRupiah(item.harga)}
+                {formatRupiah(item.harga * (item.quantity ?? 1))}
               </span>
             </li>
           ))}

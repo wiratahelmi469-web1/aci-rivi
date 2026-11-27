@@ -28,6 +28,7 @@ export interface OrderTopping {
   nama: string;
   emoji?: string;
   harga: number;
+  quantity: number;
 }
 
 export interface Order {
@@ -63,5 +64,3 @@ export interface StoreSettings {
   qrisImage?: string; // Data URL gambar QRIS toko
   qrisUpdatedAt?: string;
 }
-
-export type PeriodeLaporan = 'hari' | 'minggu' | 'bulan';

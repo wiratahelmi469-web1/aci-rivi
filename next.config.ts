@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
   },
   // Allow access to remote image placeholder.
   images: {
+    localPatterns: [
+      {
+        pathname: '/api/toppings/**',
+      },
+    ],
     remotePatterns: [
       {
         protocol: 'https',

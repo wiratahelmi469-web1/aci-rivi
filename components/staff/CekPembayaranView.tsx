@@ -141,6 +141,17 @@ export function CekPembayaranView() {
                   </div>
                 </div>
 
+                <ul className="mt-3 space-y-1 border-t border-stone-100 pt-3 text-sm text-stone-700">
+                  {order.daftarTopping.map((item) => (
+                    <li key={item.id} className="flex justify-between gap-3">
+                      <span>{item.nama} x{item.quantity ?? 1}</span>
+                      <span className="font-mono tabular-nums">
+                        {formatRupiah(item.harga * (item.quantity ?? 1))}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
                 {/* Foto Bukti Bayar */}
                 <div className="mt-4">
                   <p className="mb-1.5 text-xs font-semibold text-stone-600">

@@ -38,11 +38,14 @@ export function toOrder(r: OrderRow): Order {
   return {
     id: r.id,
     uid: r.uid ?? undefined,
-    nomorPesanan: `#${String(r.nomor).padStart(3, '0')}`,
+    nomorPesanan: `ACI-${String(r.nomor).padStart(4, '0')}`,
     nama: r.nama,
     nomorWhatsApp: r.nomorWhatsApp,
     sumber: r.sumber as Order['sumber'],
-    daftarTopping: r.daftarTopping,
+    daftarTopping: r.daftarTopping.map((item) => ({
+      ...item,
+      quantity: item.quantity ?? 1,
+    })),
     totalHarga: r.totalHarga,
     catatan: r.catatan,
     waktuAmbil: r.waktuAmbil,

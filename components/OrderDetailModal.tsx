@@ -90,7 +90,7 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
 
           <div>
             <h3 className="text-sm font-bold text-stone-900">
-              Daftar Topping ({order.daftarTopping.length})
+              Daftar Topping ({order.daftarTopping.reduce((sum, item) => sum + (item.quantity ?? 1), 0)})
             </h3>
             <ul className="mt-2 divide-y divide-stone-100 rounded-2xl border border-stone-200 px-4">
               {order.daftarTopping.map((item, idx) => (
@@ -100,10 +100,10 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
                 >
                   <span className="font-medium text-stone-800">
                     {item.emoji ? `${item.emoji} ` : ''}
-                    {item.nama}
+                    {item.nama} x{item.quantity ?? 1}
                   </span>
                   <span className="font-mono text-stone-700 tabular-nums">
-                    {formatRupiah(item.harga)}
+                    {formatRupiah(item.harga * (item.quantity ?? 1))}
                   </span>
                 </li>
               ))}

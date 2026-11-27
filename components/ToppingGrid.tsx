@@ -1,22 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Plus } from 'lucide-react';
-import { BATAS_STOK_MENIPIS } from '@/lib/constants';
+import { Minus, Plus } from 'lucide-react';
+import { BATAS_JUMLAH_TOPPING, BATAS_STOK_MENIPIS } from '@/lib/constants';
 import { formatRupiah } from '@/lib/time';
 import type { Topping } from '@/lib/types';
 
 interface ToppingGridProps {
   toppings: Topping[];
-  selectedIds: string[];
-  onToggle: (topping: Topping) => void;
+  quantities: Record<string, number>;
+  onQuantityChange: (topping: Topping, quantity: number) => void;
   onUnavailableTap?: (topping: Topping) => void;
 }
 
 export function ToppingGrid({
   toppings,
-  selectedIds,
-  onToggle,
+  quantities,
+  onQuantityChange,
   onUnavailableTap,
 }: ToppingGridProps) {
   const [failedPhotoIds, setFailedPhotoIds] = useState<Record<string, boolean>>(
@@ -37,28 +37,21 @@ export function ToppingGrid({
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
       {toppings.map((topping) => {
         const isHabis = !topping.tersedia || topping.stok <= 0;
-        const isSelected = !isHabis && selectedIds.includes(topping.id);
+        const quantity = quantities[topping.id] ?? 0;
+        const maxQuantity = Math.min(BATAS_JUMLAH_TOPPING, topping.stok);
+        const isSelected = quantity > 0;
         const isLowStock = !isHabis && topping.stok <= BATAS_STOK_MENIPIS;
         const showPhoto = Boolean(topping.foto) && !failedPhotoIds[topping.id];
 
         return (
-          <button
+          <article
             key={topping.id}
-            type="button"
-            onClick={() => {
-              if (isHabis) {
-                onUnavailableTap?.(topping);
-                return;
-              }
-              onToggle(topping);
-            }}
-            aria-pressed={isSelected}
-            className={`group flex flex-col justify-between rounded-2xl border p-3 text-left transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 sm:p-3.5 ${
+            className={`group flex flex-col justify-between rounded-2xl border p-3 text-left transition-all duration-150 sm:p-3.5 ${
               isHabis
                 ? 'cursor-not-allowed border-stone-200 bg-stone-100/90 opacity-75'
                 : isSelected
                   ? 'border-red-500 bg-orange-50/70 shadow-xs ring-1 ring-red-500'
-                  : 'border-stone-200 bg-white hover:border-orange-300 active:scale-[0.98] lg:hover:-translate-y-1 lg:hover:shadow-md'
+                  : 'border-stone-200 bg-white hover:border-orange-300 lg:hover:-translate-y-1 lg:hover:shadow-md'
             }`}
           >
             <div className="w-full">
@@ -128,29 +121,49 @@ export function ToppingGrid({
             </div>
 
             <div
-              className={`mt-3 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-colors whitespace-nowrap ${
+              className={`mt-3 flex min-h-[44px] w-full items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-sm font-semibold whitespace-nowrap ${
                 isHabis
                   ? 'bg-stone-200 text-stone-500'
                   : isSelected
-                    ? 'bg-red-600 text-white'
-                    : 'bg-orange-50 text-red-700 group-hover:bg-orange-100'
+                    ? 'bg-red-50 text-red-700'
+                    : 'bg-orange-50 text-red-700'
               }`}
             >
               {isHabis ? (
-                <span>Habis</span>
-              ) : isSelected ? (
-                <>
-                  <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span>Dipilih</span>
-                </>
+                <button
+                  type="button"
+                  onClick={() => onUnavailableTap?.(topping)}
+                  className="w-full py-1"
+                >
+                  Habis
+                </button>
               ) : (
                 <>
-                  <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span>Tambah</span>
+                  <button
+                    type="button"
+                    disabled={quantity <= 0}
+                    onClick={() => onQuantityChange(topping, Math.max(0, quantity - 1))}
+                    aria-label={`Kurangi ${topping.nama}`}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Minus className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                  <span className="min-w-0 flex-1 text-center font-mono tabular-nums">
+                    {quantity === 0 ? 'Tambah' : `x${quantity}`}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={quantity >= maxQuantity}
+                    onClick={() => onQuantityChange(topping, Math.min(maxQuantity, quantity + 1))}
+                    aria-label={`Tambah ${topping.nama}`}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-600 text-white disabled:cursor-not-allowed disabled:bg-stone-300"
+                  >
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                  </button>
                 </>
               )}
             </div>
-          </button>
+          </article>
         );
       })}
     </div>
