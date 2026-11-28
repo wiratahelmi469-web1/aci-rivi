@@ -1,13 +1,12 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { formatRupiah } from '@/lib/time';
+import { ToppingImage } from '@/components/ToppingImage';
 
 export interface ToppingPreview {
   id: string;
   nama: string;
-  emoji: string;
-  foto?: string;
+  imageUrl?: string;
   harga: number;
   terjual?: number;
 }
@@ -55,28 +54,20 @@ export function PratinjauTopping({
         </div>
       ) : (
         <ul className="mt-4 grid grid-cols-2 gap-3 min-[540px]:grid-cols-3 lg:grid-cols-4 lg:gap-5">
-          {toppings.map((topping, index) => (
+          {toppings.map((topping) => (
             <li key={topping.id} className="min-w-0">
               <Link
                 href={href}
                 aria-label={`${href.startsWith('/masuk') ? 'Masuk untuk memesan' : 'Pesan'} ${topping.nama}`}
                 className="group block h-full rounded-2xl border border-stone-200 bg-white p-2.5 transition hover:-translate-y-0.5 hover:border-orange-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 sm:p-3"
               >
-                <div className="relative aspect-square overflow-hidden rounded-xl bg-orange-50">
-                  {topping.foto ? (
-                    <Image
-                      src={topping.foto}
-                      alt={topping.nama}
-                      fill
-                      priority={index < 2}
-                      sizes="(max-width: 539px) 46vw, (max-width: 1023px) 30vw, 23vw"
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  ) : (
-                    <span className="flex h-full items-center justify-center text-5xl" aria-hidden="true">
-                      {topping.emoji || '🍲'}
-                    </span>
-                  )}
+                <div className="relative">
+                  <ToppingImage
+                    src={topping.imageUrl}
+                    alt={topping.nama}
+                    sizes="(max-width: 539px) 46vw, (max-width: 1023px) 30vw, 23vw"
+                    className="bg-orange-50 transition-transform duration-300 group-hover:scale-105"
+                  />
                   <span className="absolute right-2 bottom-2 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-red-700 shadow-sm">
                     {topping.terjual !== undefined ? `${topping.terjual} terjual` : 'Pilih topping'}
                   </span>

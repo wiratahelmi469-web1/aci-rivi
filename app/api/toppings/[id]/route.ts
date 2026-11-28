@@ -4,15 +4,22 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { toppings } from '@/lib/db/schema';
 import { staffGuard } from '@/lib/staff-session';
+import {
+  getToppingImageUrl,
+  isValidToppingPhoto,
+  TOPPING_PHOTO_DATA_URL_REGEX,
+} from '@/lib/topping-image';
 
 export const dynamic = 'force-dynamic';
 
-const FOTO_REGEX = /^data:image\/(jpeg|png|webp);base64,/;
-
 const patchSchema = z.object({
   nama: z.string().trim().min(1).max(60).optional(),
-  emoji: z.string().trim().max(16).optional(),
-  foto: z.string().max(600_000).regex(FOTO_REGEX).nullable().optional(),
+  foto: z
+    .string()
+    .max(2_800_100)
+    .regex(TOPPING_PHOTO_DATA_URL_REGEX)
+    .nullable()
+    .optional(),
   harga: z.number().int().min(0).max(10_000_000).optional(),
   stok: z.number().int().min(0).max(100_000).optional(),
   tersedia: z.boolean().optional(),
@@ -30,6 +37,13 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     return NextResponse.json({ error: 'Data tidak valid.' }, { status: 400 });
   }
 
+  if (parsed.data.foto && !isValidToppingPhoto(parsed.data.foto)) {
+    return NextResponse.json(
+      { error: 'Foto tidak valid. Gunakan JPG, PNG, atau WebP maksimal 2 MB.' },
+      { status: 400 }
+    );
+  }
+
   const { foto, ...rest } = parsed.data;
   const set: Partial<typeof toppings.$inferInsert> = {
     ...rest,
@@ -37,7 +51,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   };
   if (foto !== undefined) {
     set.foto = foto;
-    set.fotoVersion = foto ? Date.now() : 0;
+    const version = foto ? Date.now() : 0;
+    set.fotoVersion = version;
+    set.imageUrl = foto ? getToppingImageUrl(id, version) : null;
   }
 
   try {

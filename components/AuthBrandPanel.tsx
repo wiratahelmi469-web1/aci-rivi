@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { UtensilsCrossed } from 'lucide-react';
 
 export function AuthBrandPanel() {
@@ -8,12 +9,12 @@ export function AuthBrandPanel() {
         className="absolute -right-20 -bottom-24 h-80 w-80 rounded-full bg-white/10"
       />
       <div className="relative flex items-center gap-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src="/icons/icon-192.png"
           alt=""
           width={44}
           height={44}
+          priority
           className="h-11 w-11 rounded-xl"
         />
         <span className="text-2xl font-extrabold tracking-tight">Aci Rivi</span>

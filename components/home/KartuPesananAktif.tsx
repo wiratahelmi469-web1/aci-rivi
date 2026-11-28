@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowUpRight, Clock3 } from 'lucide-react';
+import { ToppingImage } from '@/components/ToppingImage';
 import { formatRupiah } from '@/lib/time';
 import type { Order } from '@/lib/types';
 
@@ -32,7 +33,14 @@ export function KartuPesananAktif({ order }: { order: Order }) {
       </div>
       <ul className="mt-3 flex flex-wrap gap-2">
         {order.daftarTopping.map((item) => (
-          <li key={item.id} className="rounded-lg bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-700">
+          <li key={item.id} className="inline-flex items-center gap-2 rounded-lg bg-stone-100 px-2 py-1 text-xs font-semibold text-stone-700">
+            <ToppingImage
+              src={item.imageUrl}
+              alt={item.nama}
+              sizes="28px"
+              className="h-7 w-7 shrink-0"
+              roundedClassName="rounded-md"
+            />
             {item.nama} x{item.quantity ?? 1}
           </li>
         ))}

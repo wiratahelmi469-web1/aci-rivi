@@ -7,6 +7,7 @@ import { ChevronRight, ReceiptText } from 'lucide-react';
 import { useCustomerAuth } from '@/components/AuthProvider';
 import { CustomerHeader } from '@/components/CustomerHeader';
 import { ErrorRetryCard, OrderListSkeleton } from '@/components/Skeletons';
+import { ToppingImage } from '@/components/ToppingImage';
 import { getCustomerOrders, subscribeDataChanges } from '@/lib/storage';
 import { formatRupiah, formatTanggalJamWib } from '@/lib/time';
 import type { Order } from '@/lib/types';
@@ -79,9 +80,20 @@ function ActiveOrderCard({ order }: { order: Order }) {
           <p className="mt-1 text-sm text-stone-600">
             Ambil pukul {order.waktuAmbil} · {order.daftarTopping.reduce((sum, item) => sum + (item.quantity ?? 1), 0)} topping
           </p>
-          <p className="mt-1 text-xs text-stone-500">
-            {order.daftarTopping.map((item) => `${item.nama} x${item.quantity ?? 1}`).join(' · ')}
-          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {order.daftarTopping.map((item) => (
+              <span key={item.id} className="inline-flex items-center gap-1.5 rounded-lg bg-stone-100 py-1 pl-1 pr-2 text-xs text-stone-700">
+                <ToppingImage
+                  src={item.imageUrl}
+                  alt={item.nama}
+                  sizes="24px"
+                  className="h-6 w-6 shrink-0"
+                  roundedClassName="rounded-md"
+                />
+                {item.nama} x{item.quantity ?? 1}
+              </span>
+            ))}
+          </div>
         </div>
         <StatusPill order={order} />
       </div>
@@ -129,9 +141,20 @@ function HistoryOrderCard({ order }: { order: Order }) {
           <span className="font-mono text-base font-bold text-stone-900 tabular-nums">
             {order.nomorPesanan}
           </span>
-          <p className="mt-1 text-xs text-stone-500">
-            {order.daftarTopping.map((item) => `${item.nama} x${item.quantity ?? 1}`).join(' · ')}
-          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {order.daftarTopping.map((item) => (
+              <span key={item.id} className="inline-flex items-center gap-1.5 rounded-lg bg-stone-100 py-1 pl-1 pr-2 text-xs text-stone-700">
+                <ToppingImage
+                  src={item.imageUrl}
+                  alt={item.nama}
+                  sizes="24px"
+                  className="h-6 w-6 shrink-0"
+                  roundedClassName="rounded-md"
+                />
+                {item.nama} x{item.quantity ?? 1}
+              </span>
+            ))}
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <span className="font-mono text-sm font-bold text-stone-900 tabular-nums">

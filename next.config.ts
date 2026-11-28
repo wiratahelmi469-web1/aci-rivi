@@ -8,19 +8,16 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  // Allow access to remote image placeholder.
   images: {
     localPatterns: [
       {
         pathname: '/api/toppings/**',
       },
-    ],
-    remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-        port: '',
-        pathname: '/**', // This allows any path under the hostname
+        pathname: '/icons/**',
+      },
+      {
+        pathname: '/images/**',
       },
     ],
   },

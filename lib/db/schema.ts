@@ -52,6 +52,7 @@ export const toppings = pgTable("toppings", {
   emoji: text("emoji").notNull().default(""),
   foto: text("foto"),
   fotoVersion: bigint("foto_version", { mode: "number" }).notNull().default(0),
+  imageUrl: text("image_url"),
   harga: integer("harga").notNull().default(0),
   stok: integer("stok").notNull().default(0),
   tersedia: boolean("tersedia").notNull().default(true),

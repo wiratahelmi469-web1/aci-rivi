@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -150,11 +151,13 @@ function PesananDetailContent() {
                 <p className="mb-2 text-xs font-medium text-stone-500">
                   Bukti bayar yang kamu kirim
                 </p>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={order.buktiBayar}
                   alt="Bukti bayar yang kamu kirim"
-                  referrerPolicy="no-referrer"
+                  width={1000}
+                  height={800}
+                  sizes="(max-width: 640px) 90vw, 700px"
+                  unoptimized
                   className="mx-auto max-h-48 rounded-xl object-contain"
                 />
               </div>

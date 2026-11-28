@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CustomerHeader } from '@/components/CustomerHeader';
 import { ErrorRetryCard } from '@/components/Skeletons';
+import { ToppingImage } from '@/components/ToppingImage';
 import { JAM_BUKA, JAM_TUTUP } from '@/lib/constants';
 import { formatRupiah } from '@/lib/time';
 import { getFirstName } from '@/lib/validation';
@@ -42,7 +43,14 @@ function RingkasanBelanja({ activeOrder }: { activeOrder: Order | null }) {
       <p className="text-xs font-bold uppercase tracking-wide text-orange-800">Ringkasan item</p>
       <div className="mt-2 flex flex-wrap gap-2">
         {activeOrder.daftarTopping.map((item) => (
-          <span key={item.id} className="rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-stone-800">
+          <span key={item.id} className="inline-flex items-center gap-2 rounded-lg bg-white px-2 py-1.5 text-xs font-semibold text-stone-800">
+            <ToppingImage
+              src={item.imageUrl}
+              alt={item.nama}
+              sizes="28px"
+              className="h-7 w-7 shrink-0"
+              roundedClassName="rounded-md"
+            />
             {item.nama} x{item.quantity ?? 1}
           </span>
         ))}

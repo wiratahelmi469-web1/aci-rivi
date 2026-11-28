@@ -112,7 +112,7 @@ export function CatatLangsungView({
       daftarTopping: selectedToppings.map((t) => ({
         id: t.id,
         nama: t.nama,
-        emoji: t.emoji,
+        imageUrl: t.imageUrl,
         harga: t.harga,
         quantity: quantities[t.id],
       })),

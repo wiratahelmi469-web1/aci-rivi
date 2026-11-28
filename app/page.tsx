@@ -14,9 +14,11 @@ import { db } from '@/lib/db';
 import { orders, toppings, users } from '@/lib/db/schema';
 import { orderCols, toOrder } from '@/lib/orders-server';
 import { getBestSellingToppings } from '@/lib/toppings-server';
+import { getToppingImageUrl } from '@/lib/topping-image';
 import { getStoreStatusWib } from '@/lib/time';
 import type { Order } from '@/lib/types';
 import { JAM_BUKA, JAM_TUTUP } from '@/lib/constants';
+import { Store, QrCode } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Seblak Prasmanan Aci Rivi — Pilih Topping, Ambil Tanpa Antre',
@@ -39,9 +41,9 @@ async function loadToppingPreviews(): Promise<{
       .select({
         id: toppings.id,
         nama: toppings.nama,
-        emoji: toppings.emoji,
         hasFoto: sql<boolean>`${toppings.foto} IS NOT NULL`,
         fotoVersion: toppings.fotoVersion,
+        imageUrl: toppings.imageUrl,
         harga: toppings.harga,
       })
       .from(toppings)
@@ -53,10 +55,9 @@ async function loadToppingPreviews(): Promise<{
       toppings: rows.map((row) => ({
         id: row.id,
         nama: row.nama,
-        emoji: row.emoji,
-        foto: row.hasFoto
-          ? `/api/toppings/${encodeURIComponent(row.id)}/foto?v=${row.fotoVersion}`
-          : undefined,
+        imageUrl:
+          row.imageUrl ??
+          (row.hasFoto ? getToppingImageUrl(row.id, row.fotoVersion) : undefined),
         harga: row.harga,
       })),
       error: false,
@@ -111,12 +112,14 @@ function InfoGerai() {
   return (
     <section aria-label="Informasi layanan" className="grid gap-3 sm:grid-cols-2">
       <div className="rounded-2xl border border-stone-200 bg-white p-4 sm:p-5">
+        <Store className="mb-3 h-6 w-6 text-red-600" aria-hidden="true" />
         <p className="text-sm font-bold text-stone-900">Ambil di tempat</p>
         <p className="mt-1 text-sm leading-relaxed text-stone-600">
           Pesanan disiapkan untuk diambil langsung di gerai sesuai waktu pilihanmu.
         </p>
       </div>
       <div className="rounded-2xl border border-stone-200 bg-white p-4 sm:p-5">
+        <QrCode className="mb-3 h-6 w-6 text-red-600" aria-hidden="true" />
         <p className="text-sm font-bold text-stone-900">Bayar dengan QRIS</p>
         <p className="mt-1 text-sm leading-relaxed text-stone-600">
           Selesaikan pembayaran melalui QRIS setelah pesanan dibuat.
@@ -172,10 +175,7 @@ export default async function HomePage() {
         bestSellers={bestSellerRows.rows.map((row) => ({
           id: row.id,
           nama: row.nama,
-          emoji: row.emoji,
-          foto: row.hasFoto
-            ? `/api/toppings/${encodeURIComponent(row.id)}/foto?v=${row.fotoVersion}`
-            : undefined,
+          imageUrl: row.imageUrl ?? undefined,
           harga: row.harga,
           terjual: row.terjual,
         }))}

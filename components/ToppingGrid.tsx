@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { BATAS_JUMLAH_TOPPING, BATAS_STOK_MENIPIS } from '@/lib/constants';
 import { formatRupiah } from '@/lib/time';
 import type { Topping } from '@/lib/types';
+import { ToppingImage } from '@/components/ToppingImage';
 
 interface ToppingGridProps {
   toppings: Topping[];
@@ -19,10 +19,6 @@ export function ToppingGrid({
   onQuantityChange,
   onUnavailableTap,
 }: ToppingGridProps) {
-  const [failedPhotoIds, setFailedPhotoIds] = useState<Record<string, boolean>>(
-    {}
-  );
-
   if (toppings.length === 0) {
     return (
       <div className="rounded-2xl border border-stone-200 bg-white p-8 text-center">
@@ -41,8 +37,6 @@ export function ToppingGrid({
         const maxQuantity = Math.min(BATAS_JUMLAH_TOPPING, topping.stok);
         const isSelected = quantity > 0;
         const isLowStock = !isHabis && topping.stok <= BATAS_STOK_MENIPIS;
-        const showPhoto = Boolean(topping.foto) && !failedPhotoIds[topping.id];
-
         return (
           <article
             key={topping.id}
@@ -55,38 +49,12 @@ export function ToppingGrid({
             }`}
           >
             <div className="w-full">
-              {/* Gambar Utama Persegi dengan Lazy Loading (Emoji sebagai cadangan) */}
-              <div
-                className={`relative aspect-square w-full overflow-hidden rounded-xl bg-stone-100 ${
-                  isHabis ? 'grayscale' : ''
-                }`}
-              >
-                {showPhoto ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={topping.foto}
-                    alt={topping.nama}
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                    onError={() =>
-                      setFailedPhotoIds((prev) => ({
-                        ...prev,
-                        [topping.id]: true,
-                      }))
-                    }
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-orange-50/60">
-                    <span
-                      className="text-5xl leading-none select-none"
-                      aria-hidden="true"
-                    >
-                      {topping.emoji || '🍲'}
-                    </span>
-                  </div>
-                )}
-
+              <div className={`relative ${isHabis ? 'grayscale' : ''}`}>
+                <ToppingImage
+                  src={topping.imageUrl}
+                  alt={topping.nama}
+                  sizes="(max-width: 639px) 46vw, (max-width: 1023px) 30vw, 23vw"
+                />
                 {isHabis && (
                   <div className="absolute inset-0 flex items-center justify-center bg-stone-900/45">
                     <span className="rounded-lg bg-stone-900/85 px-2.5 py-1 text-xs font-bold text-white">

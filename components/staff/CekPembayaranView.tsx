@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
@@ -10,6 +11,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { ErrorRetryCard, OrderListSkeleton } from '@/components/Skeletons';
+import { ToppingImage } from '@/components/ToppingImage';
 import {
   konfirmasiPembayaranPegawai,
   tolakPembayaranPegawai,
@@ -143,8 +145,17 @@ export function CekPembayaranView() {
 
                 <ul className="mt-3 space-y-1 border-t border-stone-100 pt-3 text-sm text-stone-700">
                   {order.daftarTopping.map((item) => (
-                    <li key={item.id} className="flex justify-between gap-3">
-                      <span>{item.nama} x{item.quantity ?? 1}</span>
+                    <li key={item.id} className="flex items-center justify-between gap-3">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <ToppingImage
+                          src={item.imageUrl}
+                          alt={item.nama}
+                          sizes="32px"
+                          className="h-8 w-8 shrink-0"
+                          roundedClassName="rounded-md"
+                        />
+                        <span className="truncate">{item.nama} x{item.quantity ?? 1}</span>
+                      </span>
                       <span className="font-mono tabular-nums">
                         {formatRupiah(item.harga * (item.quantity ?? 1))}
                       </span>
@@ -163,11 +174,13 @@ export function CekPembayaranView() {
                       onClick={() => setZoomProofUrl(order.buktiBayar!)}
                       className="group relative block w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 p-2 text-center hover:border-orange-300"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <Image
                         src={order.buktiBayar}
                         alt={`Bukti bayar ${order.nomorPesanan}`}
-                        referrerPolicy="no-referrer"
+                        width={1000}
+                        height={800}
+                        sizes="(max-width: 768px) 90vw, 600px"
+                        unoptimized
                         className="mx-auto max-h-56 w-auto rounded-xl object-contain"
                       />
                       <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-stone-600 group-hover:text-red-600">
@@ -289,11 +302,13 @@ export function CekPembayaranView() {
             >
               <X className="h-5 w-5" aria-hidden="true" />
             </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={zoomProofUrl}
               alt="Bukti bayar diperbesar"
-              referrerPolicy="no-referrer"
+              width={1200}
+              height={1000}
+              sizes="(max-width: 768px) 90vw, 600px"
+              unoptimized
               className="max-h-[78vh] w-full rounded-2xl object-contain"
             />
           </div>

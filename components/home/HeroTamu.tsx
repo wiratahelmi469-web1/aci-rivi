@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Eye } from 'lucide-react';
 import { JAM_BUKA, JAM_TUTUP } from '@/lib/constants';
 import { StatusToko, useStatusToko } from './StatusToko';
@@ -46,11 +47,16 @@ export function HeroTamu({ initialOpen, statusText }: HeroTamuProps) {
           Operasional setiap hari pukul {JAM_BUKA}:00–{JAM_TUTUP}:00 WIB
         </p>
       </div>
-      <div className="relative z-10 mt-8 hidden items-center justify-center lg:flex">
-        <div className="flex aspect-square w-full max-w-[330px] items-center justify-center rounded-full border border-white/20 bg-white/10">
-          <div className="flex h-[78%] w-[78%] items-center justify-center rounded-full bg-white/10 text-8xl" aria-hidden="true">
-            🍲
-          </div>
+      <div className="relative z-10 mt-8 flex items-center justify-center lg:mt-0">
+        <div className="relative aspect-[4/3] w-full max-w-[500px] overflow-hidden rounded-3xl border border-white/25 bg-white/10 shadow-lg">
+          <Image
+            src="/images/placeholder-seblak.png"
+            alt="Slot foto seblak Aci Rivi"
+            fill
+            priority
+            sizes="(max-width: 1023px) calc(100vw - 56px), 40vw"
+            className="object-cover"
+          />
         </div>
       </div>
     </section>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { CheckCircle2, ImagePlus, QrCode } from "lucide-react";
 import { compressQrisPhoto } from "@/lib/imageCompress";
@@ -65,11 +66,13 @@ export function PengaturanQrisView() {
         <div className="mt-5 rounded-2xl border border-stone-200 bg-stone-50 p-5 text-center">
           {qrisImage ? (
             <div className="space-y-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={qrisImage}
                 alt="QRIS Toko Aci Rivi"
-                referrerPolicy="no-referrer"
+                width={1000}
+                height={1000}
+                sizes="(max-width: 640px) 90vw, 600px"
+                unoptimized
                 className="mx-auto max-h-80 w-auto rounded-xl border border-stone-200 bg-white object-contain p-2"
               />
               {updatedAt && (

@@ -28,12 +28,25 @@ export const metadata: Metadata = {
     description:
       'Pesan seblak prasmanan Aci Rivi: pilih topping bebas, ambil di tempat tanpa antre.',
     type: 'website',
+    images: [
+      {
+        url: '/images/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Aci Rivi — Seblak Prasmanan',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Aci Rivi — Seblak Prasmanan',
     description:
       'Pesan seblak prasmanan Aci Rivi: pilih topping bebas, ambil di tempat tanpa antre.',
+    images: ['/images/og-image.png'],
+  },
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/icons/apple-touch-icon.png',
   },
 };
 

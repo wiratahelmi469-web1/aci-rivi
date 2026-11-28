@@ -1,6 +1,7 @@
 'use client';
 
 import { MessageCircle, X } from 'lucide-react';
+import { ToppingImage } from '@/components/ToppingImage';
 import { formatRupiah, formatTanggalJamWib } from '@/lib/time';
 import type { Order } from '@/lib/types';
 
@@ -98,9 +99,15 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
                   key={`${item.id}-${idx}`}
                   className="flex items-center justify-between py-2.5 text-sm"
                 >
-                  <span className="font-medium text-stone-800">
-                    {item.emoji ? `${item.emoji} ` : ''}
-                    {item.nama} x{item.quantity ?? 1}
+                  <span className="flex min-w-0 items-center gap-2 font-medium text-stone-800">
+                    <ToppingImage
+                      src={item.imageUrl}
+                      alt={item.nama}
+                      sizes="40px"
+                      className="h-10 w-10 shrink-0"
+                      roundedClassName="rounded-lg"
+                    />
+                    <span className="truncate">{item.nama} x{item.quantity ?? 1}</span>
                   </span>
                   <span className="font-mono text-stone-700 tabular-nums">
                     {formatRupiah(item.harga * (item.quantity ?? 1))}

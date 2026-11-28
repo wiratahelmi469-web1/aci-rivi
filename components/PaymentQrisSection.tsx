@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -226,11 +227,13 @@ export function PaymentQrisSection({ order }: PaymentQrisSectionProps) {
                 className="group relative mx-auto block rounded-2xl border border-stone-200 bg-white p-2 focus-visible:outline-2 focus-visible:outline-red-600"
                 aria-label="Perbesar gambar QRIS"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={qrisImage}
                   alt="Kode QRIS Toko Aci Rivi"
-                  referrerPolicy="no-referrer"
+                  width={800}
+                  height={800}
+                  sizes="(max-width: 640px) 80vw, 600px"
+                  unoptimized
                   className="mx-auto max-h-72 w-auto rounded-xl object-contain"
                 />
                 <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-stone-600 group-hover:text-red-600">
@@ -304,11 +307,13 @@ export function PaymentQrisSection({ order }: PaymentQrisSectionProps) {
 
         {proofPreview && (
           <div className="mt-3 rounded-2xl border border-stone-200 bg-stone-50 p-3 text-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={proofPreview}
               alt="Pratinjau bukti pembayaran"
-              referrerPolicy="no-referrer"
+              width={1000}
+              height={800}
+              sizes="(max-width: 640px) 90vw, 700px"
+              unoptimized
               className="mx-auto max-h-56 rounded-xl object-contain"
             />
           </div>
@@ -399,11 +404,13 @@ export function PaymentQrisSection({ order }: PaymentQrisSectionProps) {
             >
               <X className="h-5 w-5" aria-hidden="true" />
             </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={qrisImage}
               alt="Kode QRIS Toko Aci Rivi diperbesar"
-              referrerPolicy="no-referrer"
+              width={1000}
+              height={1000}
+              sizes="(max-width: 640px) 90vw, 500px"
+              unoptimized
               className="max-h-[75vh] w-full rounded-2xl object-contain"
             />
           </div>

@@ -8,6 +8,7 @@ import { useCustomerAuth } from '@/components/AuthProvider';
 import { CustomerHeader } from '@/components/CustomerHeader';
 import { ErrorRetryCard, ToppingGridSkeleton } from '@/components/Skeletons';
 import { ToppingGrid } from '@/components/ToppingGrid';
+import { ToppingImage } from '@/components/ToppingImage';
 import { PickupTimePicker } from '@/components/PickupTimePicker';
 import {
   BATAS_JUMLAH_TOPPING,
@@ -352,20 +353,13 @@ export function PesanClient() {
                       className="flex items-center justify-between gap-3 py-3"
                     >
                       <div className="flex items-center gap-3">
-                        {item.foto ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={item.foto}
-                            alt={item.nama}
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                            className="h-10 w-10 rounded-lg object-cover"
-                          />
-                        ) : (
-                          <span className="text-xl" aria-hidden="true">
-                            {item.emoji}
-                          </span>
-                        )}
+                        <ToppingImage
+                          src={item.imageUrl}
+                          alt={item.nama}
+                          sizes="40px"
+                          className="h-10 w-10"
+                          roundedClassName="rounded-lg"
+                        />
                         <div>
                           <p className="text-sm font-semibold text-stone-900">
                             {item.nama} x{quantities[item.id]}

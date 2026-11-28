@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Clock, Utensils } from 'lucide-react';
+import { ToppingImage } from '@/components/ToppingImage';
 import { OrderDetailModal } from '@/components/OrderDetailModal';
 import { ErrorRetryCard, OrderListSkeleton } from '@/components/Skeletons';
 import { playNewOrderChime } from '@/lib/sound';
@@ -218,11 +219,20 @@ export function PesananMasukView() {
                     <p className="text-xs font-semibold text-stone-500">
                       Topping ({order.daftarTopping.reduce((sum, item) => sum + (item.quantity ?? 1), 0)})
                     </p>
-                    <p className="mt-1 text-sm font-medium leading-relaxed text-stone-800">
-                      {order.daftarTopping
-                        .map((t) => `${t.emoji ? `${t.emoji} ` : ''}${t.nama} x${t.quantity ?? 1}`)
-                        .join(' · ')}
-                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {order.daftarTopping.map((item) => (
+                        <span key={item.id} className="inline-flex items-center gap-1.5 rounded-lg bg-stone-100 py-1 pl-1 pr-2 text-xs font-medium text-stone-800">
+                          <ToppingImage
+                            src={item.imageUrl}
+                            alt={item.nama}
+                            sizes="24px"
+                            className="h-6 w-6 shrink-0"
+                            roundedClassName="rounded-md"
+                          />
+                          {item.nama} x{item.quantity ?? 1}
+                        </span>
+                      ))}
+                    </div>
                   </div>
 
                   {order.catatan && (

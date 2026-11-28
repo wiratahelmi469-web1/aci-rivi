@@ -80,7 +80,6 @@ function toError(err: unknown): string {
 
 export async function addTopping(input: {
   nama: string;
-  emoji: string;
   foto?: string;
   harga: number;
   stok: number;
@@ -91,7 +90,6 @@ export async function addTopping(input: {
       method: 'POST',
       body: JSON.stringify({
         nama: input.nama.trim(),
-        emoji: input.emoji.trim() || '🍲',
         foto: input.foto,
         harga: Math.max(0, Math.round(input.harga)),
         stok: Math.max(0, Math.round(input.stok)),

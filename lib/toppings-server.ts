@@ -4,9 +4,7 @@ import { db } from '@/lib/db';
 export type BestSellingToppingRow = {
   id: string;
   nama: string;
-  emoji: string;
-  hasFoto: boolean;
-  fotoVersion: number;
+  imageUrl: string | null;
   harga: number;
   terjual: number;
 }
@@ -16,9 +14,14 @@ export async function getBestSellingToppings(): Promise<BestSellingToppingRow[]>
     SELECT
       available_topping.id,
       available_topping.nama,
-      available_topping.emoji,
-      (available_topping.foto IS NOT NULL) AS "hasFoto",
-      available_topping.foto_version AS "fotoVersion",
+      COALESCE(
+        available_topping.image_url,
+        CASE
+          WHEN available_topping.foto IS NOT NULL
+          THEN '/api/toppings/' || available_topping.id || '/foto?v=' || available_topping.foto_version
+          ELSE NULL
+        END
+      ) AS "imageUrl",
       available_topping.harga,
       SUM(COALESCE((item->>'quantity')::int, 1))::int AS terjual
     FROM orders

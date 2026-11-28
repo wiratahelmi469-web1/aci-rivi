@@ -17,6 +17,7 @@ import {
 import { generatePickupSlots, getWibParts } from '@/lib/time';
 import type { OrderTopping } from '@/lib/types';
 import { getWhatsAppValidationError } from '@/lib/validation';
+import { getToppingImageUrl } from '@/lib/topping-image';
 
 export const dynamic = 'force-dynamic';
 
@@ -144,7 +145,9 @@ export async function POST(req: NextRequest) {
     .select({
       id: toppings.id,
       nama: toppings.nama,
-      emoji: toppings.emoji,
+      imageUrl: toppings.imageUrl,
+      hasFoto: sql<boolean>`${toppings.foto} IS NOT NULL`,
+      fotoVersion: toppings.fotoVersion,
       harga: toppings.harga,
       stok: toppings.stok,
       tersedia: toppings.tersedia,
@@ -170,7 +173,9 @@ export async function POST(req: NextRequest) {
     return {
       id: t.id,
       nama: t.nama,
-      emoji: t.emoji,
+      imageUrl:
+        t.imageUrl ??
+        (t.hasFoto ? getToppingImageUrl(t.id, t.fotoVersion) : undefined),
       harga: t.harga,
       quantity: quantities.get(id)!,
     };

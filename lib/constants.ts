@@ -13,12 +13,12 @@ export const BATAS_STOK_MENIPIS = 5;
 
 // Daftar topping awal (stok masing-masing 20)
 export const INITIAL_TOPPINGS: Topping[] = [
-  { id: 'bakso', nama: 'Bakso', emoji: '🍡', harga: 2000, stok: 20, tersedia: true },
-  { id: 'sosis', nama: 'Sosis', emoji: '🌭', harga: 2000, stok: 20, tersedia: true },
-  { id: 'ceker', nama: 'Ceker', emoji: '🍗', harga: 3000, stok: 20, tersedia: true },
-  { id: 'mie', nama: 'Mie', emoji: '🍜', harga: 2000, stok: 20, tersedia: true },
-  { id: 'makaroni', nama: 'Makaroni', emoji: '🍝', harga: 2000, stok: 20, tersedia: true },
-  { id: 'kerupuk', nama: 'Kerupuk', emoji: '🍘', harga: 1000, stok: 20, tersedia: true },
-  { id: 'siomay', nama: 'Siomay', emoji: '🥟', harga: 3000, stok: 20, tersedia: true },
-  { id: 'telur', nama: 'Telur', emoji: '🥚', harga: 3000, stok: 20, tersedia: true },
+  { id: 'bakso', nama: 'Bakso', harga: 2000, stok: 20, tersedia: true },
+  { id: 'sosis', nama: 'Sosis', harga: 2000, stok: 20, tersedia: true },
+  { id: 'ceker', nama: 'Ceker', harga: 3000, stok: 20, tersedia: true },
+  { id: 'mie', nama: 'Mie', harga: 2000, stok: 20, tersedia: true },
+  { id: 'makaroni', nama: 'Makaroni', harga: 2000, stok: 20, tersedia: true },
+  { id: 'kerupuk', nama: 'Kerupuk', harga: 1000, stok: 20, tersedia: true },
+  { id: 'siomay', nama: 'Siomay', harga: 3000, stok: 20, tersedia: true },
+  { id: 'telur', nama: 'Telur', harga: 3000, stok: 20, tersedia: true },
 ];

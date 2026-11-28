@@ -16,8 +16,8 @@ export type StatusPesanan =
 export interface Topping {
   id: string;
   nama: string;
-  emoji: string;
-  foto?: string; // Data URL JPEG terkompresi (opsional; fallback ke emoji)
+  foto?: string;
+  imageUrl?: string;
   harga: number;
   stok: number;
   tersedia: boolean;
@@ -26,7 +26,7 @@ export interface Topping {
 export interface OrderTopping {
   id: string;
   nama: string;
-  emoji?: string;
+  imageUrl?: string;
   harga: number;
   quantity: number;
 }

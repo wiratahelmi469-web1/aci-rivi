@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import Image from 'next/image';
 
 interface SplashScreenProps {
   visible: boolean;
@@ -55,10 +56,16 @@ export function SplashScreen({
               )}
             </div>
 
-            {/* Ikon mangkuk seblak */}
             {prefersReduced ? (
-              <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/80 text-5xl shadow-xs">
-                <span aria-hidden="true">🍜</span>
+              <div className="relative h-20 w-20 overflow-hidden rounded-3xl bg-white/80 shadow-xs">
+                <Image
+                  src="/icons/icon-192.png"
+                  alt="Logo Aci Rivi"
+                  fill
+                  priority
+                  sizes="80px"
+                  className="object-cover"
+                />
               </div>
             ) : (
               <motion.div
@@ -68,9 +75,16 @@ export function SplashScreen({
                   repeat: Infinity,
                   ease: 'easeInOut',
                 }}
-                className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/85 text-5xl shadow-sm"
+                className="relative h-20 w-20 overflow-hidden rounded-3xl bg-white/85 shadow-sm"
               >
-                <span aria-hidden="true">🍜</span>
+                <Image
+                  src="/icons/icon-192.png"
+                  alt="Logo Aci Rivi"
+                  fill
+                  priority
+                  sizes="80px"
+                  className="object-cover"
+                />
               </motion.div>
             )}
 

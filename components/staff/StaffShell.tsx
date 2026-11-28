@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2, Lock, LogOut } from 'lucide-react';
 import { SplashScreen } from '@/components/SplashScreen';
@@ -183,7 +184,8 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen flex-col bg-[#F7F6F5]">
         <header className="border-b border-stone-200 bg-white">
           <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
-            <span className="text-base font-bold text-red-600">
+            <span className="inline-flex items-center gap-2 text-base font-bold text-red-600">
+              <Image src="/icons/icon-192.png" alt="" width={28} height={28} priority className="rounded-lg" />
               Aci Rivi · Pegawai
             </span>
             <span className="text-xs font-medium text-stone-500">
@@ -294,7 +296,8 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 backdrop-blur-sm">
           <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
             {isRootStaff ? (
-              <span className="text-base font-bold text-red-600 whitespace-nowrap">
+              <span className="inline-flex items-center gap-2 text-base font-bold text-red-600 whitespace-nowrap">
+                <Image src="/icons/icon-192.png" alt="" width={28} height={28} priority className="rounded-lg" />
                 Aci Rivi · Pegawai
               </span>
             ) : (

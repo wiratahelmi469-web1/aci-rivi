@@ -94,6 +94,13 @@ export async function compressImageFile(
 }
 
 export async function compressToppingPhoto(file: File): Promise<string> {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    throw new Error('Gunakan foto JPG, PNG, atau WebP.');
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    throw new Error('Ukuran foto maksimal 2 MB.');
+  }
+
   const res = await compressImageFile(file, {
     maxSide: 800,
     maxBytes: 200 * 1024,
